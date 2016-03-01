@@ -82,6 +82,11 @@ impl Tile {
         format!("{}/{}/{}/{}/{}/{}/{}.{}", self.zoom, tc[0], tc[1], tc[2], tc[3], tc[4], tc[5], ext)
     }
 
+    pub fn mp_path<T: std::fmt::Display>(&self, ext: T) -> String {
+        let mp = xy_to_mp(self.x, self.y);
+        format!("{}/{}/{}/{}/{}.{}", self.zoom, mp[0], mp[1], mp[2], mp[3], ext)
+    }
+
 }
 
 fn tile_nw_lat_lon(zoom: u8, x: f32, y: f32) -> LatLon {
@@ -112,7 +117,7 @@ impl LatLon {
 
 }
 
-pub fn xy_to_tc(x: u32, y: u32) -> [String; 6] {
+fn xy_to_tc(x: u32, y: u32) -> [String; 6] {
     [
         format!("{:03}", x/1_000_000),
         format!("{:03}", (x / 1_000) % 1_000),
@@ -123,12 +128,12 @@ pub fn xy_to_tc(x: u32, y: u32) -> [String; 6] {
     ]
 }
 
-pub fn zxy_to_tc_path(z: u8, x: u32, y: u32, ext: &str) -> String {
+fn zxy_to_tc_path(z: u8, x: u32, y: u32, ext: &str) -> String {
     let tc = xy_to_tc(x, y);
     format!("{}/{}/{}/{}/{}/{}/{}.{}", z, tc[0], tc[1], tc[2], tc[3], tc[4], tc[5], ext)
 }
 
-pub fn xy_to_mp(x: u32, y: u32) -> [String; 4] {
+fn xy_to_mp(x: u32, y: u32) -> [String; 4] {
     [
         format!("{:04}", x/10_000),
         format!("{:04}", x % 10_000),
@@ -137,7 +142,7 @@ pub fn xy_to_mp(x: u32, y: u32) -> [String; 4] {
     ]
 }
 
-pub fn zxy_to_mp_path(z: u8, x: u32, y: u32, ext: &str) -> String {
+fn zxy_to_mp_path(z: u8, x: u32, y: u32, ext: &str) -> String {
     let mp = xy_to_mp(x, y);
     format!("{}/{}/{}/{}/{}.{}", z, mp[0], mp[1], mp[2], mp[3], ext)
 }
@@ -200,6 +205,7 @@ mod test {
 
 
         assert_eq!(parent.tc_path("png"), "0/000/000/000/000/000/000.png");
+        assert_eq!(parent.mp_path("png"), "0/0000/0000/0000/0000.png");
 
         let children = parent.subtiles();
         assert_eq!(children.is_none(), false);
