@@ -64,6 +64,19 @@ impl Tile {
         tile_nw_lat_lon(self.zoom, (self.x as f32)+1.0, (self.y as f32)+1.0)
     }
 
+    pub fn top(&self) -> f32 {
+        self.nw_corner().lat
+    }
+    pub fn bottom(&self) -> f32 {
+        self.sw_corner().lat
+    }
+    pub fn left(&self) -> f32 {
+        self.nw_corner().lon
+    }
+    pub fn right(&self) -> f32 {
+        self.se_corner().lon
+    }
+
     pub fn tc_path<T: std::fmt::Display>(&self, ext: T) -> String {
         let tc = xy_to_tc(self.x, self.y);
         format!("{}/{}/{}/{}/{}/{}/{}.{}", self.zoom, tc[0], tc[1], tc[2], tc[3], tc[4], tc[5], ext)
@@ -179,6 +192,12 @@ mod test {
         assert_eq!(parent.ne_corner(), LatLon::new(85.05112, 180.0).unwrap());
         assert_eq!(parent.sw_corner(), LatLon::new(-85.05112, -180.0).unwrap());
         assert_eq!(parent.se_corner(), LatLon::new(-85.05112, 180.0).unwrap());
+
+        assert_eq!(parent.top(), 85.05112);
+        assert_eq!(parent.bottom(), -85.05112);
+        assert_eq!(parent.left(), -180.0);
+        assert_eq!(parent.right(), 180.0);
+
 
         assert_eq!(parent.tc_path("png"), "0/000/000/000/000/000/000.png");
 
