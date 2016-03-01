@@ -98,10 +98,10 @@ pub fn zxy_to_tc_path(z: u8, x: u32, y: u32, ext: &str) -> String {
 
 pub fn xy_to_mp(x: u32, y: u32) -> [String; 4] {
     [
-        format!("{:03}", x/10_000),
-        format!("{:03}", x % 10_000),
-        format!("{:03}", y/10_000),
-        format!("{:03}", y % 10_000),
+        format!("{:04}", x/10_000),
+        format!("{:04}", x % 10_000),
+        format!("{:04}", y/10_000),
+        format!("{:04}", y % 10_000),
     ]
 }
 
@@ -132,9 +132,9 @@ mod test {
     fn mp() {
         let res = xy_to_mp(3, 4);
         assert_eq!(res[0], "0000");
-        assert_eq!(res[2], "0003");
-        assert_eq!(res[4], "0000");
-        assert_eq!(res[5], "0004");
+        assert_eq!(res[1], "0003");
+        assert_eq!(res[2], "0000");
+        assert_eq!(res[3], "0004");
 
         assert_eq!(zxy_to_mp_path(2, 3, 4, "png"), "2/0000/0003/0000/0004.png".to_string());
     }
