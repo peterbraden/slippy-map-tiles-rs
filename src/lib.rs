@@ -48,6 +48,22 @@ impl Tile {
         self.centre_point()
     }
 
+    pub fn nw_corner(&self) -> LatLon {
+        tile_nw_lat_lon(self.zoom, (self.x as f32), (self.y as f32))
+    }
+
+    pub fn ne_corner(&self) -> LatLon {
+        tile_nw_lat_lon(self.zoom, (self.x as f32)+1.0, (self.y as f32))
+    }
+
+    pub fn sw_corner(&self) -> LatLon {
+        tile_nw_lat_lon(self.zoom, (self.x as f32), (self.y as f32)+1.0)
+    }
+
+    pub fn se_corner(&self) -> LatLon {
+        tile_nw_lat_lon(self.zoom, (self.x as f32)+1.0, (self.y as f32)+1.0)
+    }
+
     pub fn tc_path<T: std::fmt::Display>(&self, ext: T) -> String {
         let tc = xy_to_tc(self.x, self.y);
         format!("{}/{}/{}/{}/{}/{}/{}.{}", self.zoom, tc[0], tc[1], tc[2], tc[3], tc[4], tc[5], ext)
@@ -158,6 +174,11 @@ mod test {
         assert_eq!(parent, Tile::new(0, 0, 0).unwrap());
 
         assert_eq!(parent.centre_point(), LatLon::new(0f32, 0f32).unwrap());
+        assert_eq!(parent.nw_corner(), LatLon::new(85.05112, -180.0).unwrap());
+        assert_eq!(parent.ne_corner(), LatLon::new(85.05112, 180.0).unwrap());
+        assert_eq!(parent.sw_corner(), LatLon::new(-85.05112, -180.0).unwrap());
+        assert_eq!(parent.se_corner(), LatLon::new(-85.05112, 180.0).unwrap());
+
         assert_eq!(parent.tc_path("png"), "0/000/000/000/000/000/000.png");
 
         let children = parent.subtiles();
