@@ -6,8 +6,8 @@ pub struct Tile {
 }
 
 impl Tile {
-    fn new(zoom: u8, x: u32, y: u32) -> Option<Tile> {
-        if x < 2^(zoom as u32) && y < 2^(zoom as u32) {
+    pub fn new(zoom: u8, x: u32, y: u32) -> Option<Tile> {
+        if x < 2u32.pow(zoom as u32) && y < 2u32.pow(zoom as u32) {
             Some(Tile { zoom: zoom, x: x, y: y })
         } else {
             None
@@ -56,7 +56,7 @@ impl Tile {
         self.centre_point()
     }
 
-    fn tc_path<T: std::fmt::Display>(&self, ext: T) -> String {
+    pub fn tc_path<T: std::fmt::Display>(&self, ext: T) -> String {
         let tc = xy_to_tc(self.x, self.y);
         format!("{}/{}/{}/{}/{}/{}/{}.{}", self.zoom, tc[0], tc[1], tc[2], tc[3], tc[4], tc[5], ext)
     }
@@ -144,8 +144,11 @@ mod test {
         let tile = Tile::new(1, 5, 5);
         assert_eq!(tile.is_none(), true);
 
+        assert_eq!(Tile::new(4, 8, 9).is_some(), true);
+
         let tile = Tile::new(1, 0, 0);
         assert_eq!(tile.is_none(), false);
+
         let tile = tile.unwrap();
         let parent = tile.parent();
         assert_eq!(parent.is_none(), false);
