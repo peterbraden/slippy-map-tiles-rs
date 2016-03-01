@@ -41,15 +41,7 @@ impl Tile {
     }
 
     pub fn centre_point(&self) -> LatLon {
-        let n: f32 = 2f32.powi(self.zoom as i32);
-        let lon_deg: f32 = (self.x as f32) / n * 360f32 - 180f32;
-        let lat_rad: f32 = ((1f32 - 2f32 * (self.y as f32) / n) * std::f32::consts::PI).sinh().atan();
-        let lat_deg: f32 = lat_rad * 180f32 * std::f32::consts::FRAC_1_PI;
-
-        // FIXME figure out the unwrapping here....
-        // Do we always know it's valid?
-        LatLon::new(lat_deg, lon_deg).unwrap()
-
+        tile_nw_lat_lon(self.zoom, (self.x as f32)+0.5, (self.y as f32)+0.5)
     }
 
     pub fn center_point(&self) -> LatLon {
@@ -61,6 +53,17 @@ impl Tile {
         format!("{}/{}/{}/{}/{}/{}/{}.{}", self.zoom, tc[0], tc[1], tc[2], tc[3], tc[4], tc[5], ext)
     }
 
+}
+
+fn tile_nw_lat_lon(zoom: u8, x: f32, y: f32) -> LatLon {
+    let n: f32 = 2f32.powi(zoom as i32);
+    let lon_deg: f32 = (x as f32) / n * 360f32 - 180f32;
+    let lat_rad: f32 = ((1f32 - 2f32 * (y as f32) / n) * std::f32::consts::PI).sinh().atan();
+    let lat_deg: f32 = lat_rad * 180f32 * std::f32::consts::FRAC_1_PI;
+
+    // FIXME figure out the unwrapping here....
+    // Do we always know it's valid?
+    LatLon::new(lat_deg, lon_deg).unwrap()
 }
 
 #[derive(PartialEq, Debug)]
