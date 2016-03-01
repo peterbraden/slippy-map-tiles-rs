@@ -14,7 +14,7 @@ impl Tile {
         }
     }
 
-    fn parent(&self) -> Option<Tile> {
+    pub fn parent(&self) -> Option<Tile> {
         match self.zoom {
             0 => {
                 // zoom 0, no parent
@@ -26,7 +26,7 @@ impl Tile {
         }
     }
 
-    fn subtiles(&self) -> Option<[Tile; 4]> {
+    pub fn subtiles(&self) -> Option<[Tile; 4]> {
         match self.zoom {
             std::u8::MAX => {
                 None
@@ -40,7 +40,7 @@ impl Tile {
         }
     }
 
-    fn centre_point(&self) -> LatLon {
+    pub fn centre_point(&self) -> LatLon {
         let n: f32 = 2f32.powi(self.zoom as i32);
         let lon_deg: f32 = (self.x as f32) / n * 360f32 - 180f32;
         let lat_rad: f32 = ((1f32 - 2f32 * (self.y as f32) / n) * std::f32::consts::PI).sinh().atan();
@@ -52,7 +52,7 @@ impl Tile {
 
     }
 
-    fn center_point(&self) -> LatLon {
+    pub fn center_point(&self) -> LatLon {
         self.centre_point()
     }
 
