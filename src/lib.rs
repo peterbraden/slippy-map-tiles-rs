@@ -132,6 +132,7 @@ pub fn zxy_to_mp_path(z: u8, x: u32, y: u32, ext: &str) -> String {
 // TODO do mod_tile tile format
 
 mod test {
+    use super::{xy_to_tc, xy_to_mp, Tile, zxy_to_tc_path, zxy_to_mp_path, LatLon};
 
     #[test]
     fn tc() {
