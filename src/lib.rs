@@ -140,10 +140,11 @@ fn xy_to_mp(x: u32, y: u32) -> [String; 4] {
 // TODO do mod_tile tile format
 
 mod test {
-    use super::{xy_to_tc, xy_to_mp, Tile, zxy_to_tc_path, zxy_to_mp_path, LatLon};
 
     #[test]
     fn tc() {
+        use super::xy_to_tc;
+
         let res = xy_to_tc(3, 4);
         assert_eq!(res[0], "000");
         assert_eq!(res[1], "000");
@@ -155,6 +156,8 @@ mod test {
 
     #[test]
     fn mp() {
+        use super::xy_to_mp;
+
         let res = xy_to_mp(3, 4);
         assert_eq!(res[0], "0000");
         assert_eq!(res[1], "0003");
@@ -164,6 +167,8 @@ mod test {
 
     #[test]
     fn tiles() {
+        use super::{Tile, LatLon};
+
         let tile = Tile::new(1, 5, 5);
         assert_eq!(tile.is_none(), true);
 
