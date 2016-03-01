@@ -53,7 +53,12 @@ impl Tile {
     }
 
     fn center_point(&self) -> LatLon {
-        self.center_point()
+        self.centre_point()
+    }
+
+    fn tc_path<T: std::fmt::Display>(&self, ext: T) -> String {
+        let tc = xy_to_tc(self.x, self.y);
+        format!("{}/{}/{}/{}/{}/{}/{}.{}", self.zoom, tc[0], tc[1], tc[2], tc[3], tc[4], tc[5], ext)
     }
 
 }
@@ -123,6 +128,7 @@ mod test {
         assert_eq!(zxy_to_tc_path(2, 3, 4, "png"), "2/000/000/003/000/000/004.png".to_string());
     }
 
+    #[test]
     fn mp() {
         let res = xy_to_mp(3, 4);
         assert_eq!(res[0], "0000");
@@ -133,6 +139,7 @@ mod test {
         assert_eq!(zxy_to_mp_path(2, 3, 4, "png"), "2/0000/0003/0000/0004.png".to_string());
     }
 
+    #[test]
     fn tiles() {
         let tile = Tile::new(1, 5, 5);
         assert_eq!(tile.is_none(), true);
@@ -146,14 +153,22 @@ mod test {
         assert_eq!(parent, Tile::new(0, 0, 0).unwrap());
 
         assert_eq!(parent.centre_point(), LatLon::new(0f32, 0f32).unwrap());
+        assert_eq!(parent.tc_path("png"), "0/000/000/000/000/000/000.png");
 
         let children = parent.subtiles();
         assert_eq!(children.is_none(), false);
         let children: [Tile; 4] = children.unwrap();
         assert_eq!(children[0], Tile::new(1, 0, 0).unwrap());
+        assert_eq!(children[0].tc_path("png"), "1/000/000/000/000/000/000.png");
+
         assert_eq!(children[1], Tile::new(1, 1, 0).unwrap());
+        assert_eq!(children[1].tc_path("png"), "1/000/000/001/000/000/000.png");
+
         assert_eq!(children[2], Tile::new(1, 0, 1).unwrap());
+        assert_eq!(children[2].tc_path("png"), "1/000/000/000/000/000/001.png");
+
         assert_eq!(children[3], Tile::new(1, 1, 1).unwrap());
+        assert_eq!(children[3].tc_path("png"), "1/000/000/001/000/000/001.png");
         
 
 
