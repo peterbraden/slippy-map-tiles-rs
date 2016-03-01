@@ -1,5 +1,5 @@
 [package]
-name = "tiledir"
+name = "slippy-map-tiles"
 version = "0.1.0"
 authors = ["Rory McCann <rory@technomancy.org>"]
 license = "AGPL-3.0"
