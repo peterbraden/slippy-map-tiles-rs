@@ -187,8 +187,8 @@ impl BBox {
     }
 
     pub fn overlaps_bbox(&self, other: &BBox) -> bool {
-        false
-
+        // FXME check top & left edges
+        (self.left < other.right && self.right > other.left && self.top > other.bottom && self.bottom < other.top)
     }
 
 }
@@ -368,5 +368,18 @@ mod test {
         assert!(!bbox.contains_point(&tile.sw_corner()));
         assert!(!bbox.contains_point(&tile.ne_corner()));
         assert!(!bbox.contains_point(&tile.se_corner()));
+    }
+
+    #[test]
+    fn bbox_overlaps() {
+        use super::{Tile, BBox};
+
+        let tile = Tile::new(7, 63, 42).unwrap();
+        let parent_tile = tile.parent().unwrap();
+
+        assert!(parent_tile.bbox().overlaps_bbox(&tile.bbox()));
+
+        let tile2 = Tile::new(7, 63, 43).unwrap();
+        assert!(!tile.bbox().overlaps_bbox(&tile2.bbox()));
     }
 }
