@@ -197,8 +197,8 @@ mod test {
     }
 
     #[test]
-    fn tiles() {
-        use super::{Tile, LatLon};
+    fn tiles_parsing() {
+        use super::Tile;
 
         let tile = Tile::new(1, 5, 5);
         assert_eq!(tile.is_none(), true);
@@ -207,6 +207,12 @@ mod test {
 
         let tile = Tile::new(1, 0, 0);
         assert_eq!(tile.is_none(), false);
+    }
+
+    #[test]
+    fn tiles() {
+        use super::{Tile, LatLon};
+        let tile = Tile::new(1, 0, 0);
 
         let tile = tile.unwrap();
         let parent = tile.parent();
