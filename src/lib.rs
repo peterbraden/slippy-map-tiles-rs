@@ -183,7 +183,12 @@ impl BBox {
     }
 
     pub fn contains_point(&self, point: &LatLon) -> bool {
-        (point.lat <= self.top && point.lat >= self.bottom && point.lon >= self.left && point.lon <= self.right)
+        (point.lat <= self.top && point.lat > self.bottom && point.lon >= self.left && point.lon < self.right)
+    }
+
+    pub fn overlaps_bbox(&self, other: &BBox) -> bool {
+        false
+
     }
 
 }
@@ -345,11 +350,23 @@ mod test {
         // triangle from London, to Bristol to Birmingham
         let tile = Tile::new(7, 63, 42).unwrap();
         let bbox = tile.bbox();
-        let point1 = LatLon::new(51.75193, -1.25781).unwrap();
-        let point2 = LatLon::new(48.7997, 2.4218).unwrap();
-        
+        let point1 = LatLon::new(51.75193, -1.25781).unwrap();  // oxford
+        let point2 = LatLon::new(48.7997, 2.4218).unwrap();     // paris
+
         assert!(bbox.contains_point(&point1));
         assert!(!bbox.contains_point(&point2));
 
+        // only the top and left borders are included in the bbox
+        let nw_corner = tile.nw_corner();
+        assert!(bbox.contains_point(&nw_corner));
+
+        // Create  new point on the top edge along to the right from the NW corner
+        let nw_right = LatLon::new(nw_corner.lat, nw_corner.lon+0.001).unwrap();
+        assert!(bbox.contains_point(&nw_right));
+
+        
+        assert!(!bbox.contains_point(&tile.sw_corner()));
+        assert!(!bbox.contains_point(&tile.ne_corner()));
+        assert!(!bbox.contains_point(&tile.se_corner()));
     }
 }
