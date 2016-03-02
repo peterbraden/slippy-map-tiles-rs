@@ -182,6 +182,9 @@ impl BBox {
         BBox{ top: topleft.lat, left: topleft.lon, bottom: bottomright.lat, right: bottomright.lon }
     }
 
+    pub fn contains_point(&self, point: &LatLon) -> bool {
+        (point.lat <= self.top && point.lat >= self.bottom && point.lon >= self.left && point.lon <= self.right)
+    }
 
 }
 
@@ -334,7 +337,19 @@ mod test {
         use super::{BBox, Tile};
         let t = Tile::new(0, 0, 0).unwrap();
         assert_eq!(t.bbox(), BBox::new(85.05112, -180., -85.05112, 180.).unwrap());
+    }
 
+    #[test]
+    fn bbox_contains_point(){
+        use super::{Tile, LatLon};
+        // triangle from London, to Bristol to Birmingham
+        let tile = Tile::new(7, 63, 42).unwrap();
+        let bbox = tile.bbox();
+        let point1 = LatLon::new(51.75193, -1.25781).unwrap();
+        let point2 = LatLon::new(48.7997, 2.4218).unwrap();
+        
+        assert!(bbox.contains_point(&point1));
+        assert!(!bbox.contains_point(&point2));
 
     }
 }
