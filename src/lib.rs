@@ -87,6 +87,37 @@ impl Tile {
         format!("{}/{}/{}/{}/{}.{}", self.zoom, mp[0], mp[1], mp[2], mp[3], ext)
     }
 
+    pub fn all() -> AllTilesIterator {
+        AllTilesIterator{ next_zoom: 0, next_x: 0, next_y: 0}
+    }
+
+}
+
+pub struct AllTilesIterator {
+    next_zoom: u8,
+    next_x: u32,
+    next_y: u32,
+}
+
+impl Iterator for AllTilesIterator {
+    type Item = Tile;
+
+    fn next(&mut self) -> Option<Tile> {
+        let tile = Tile::new(self.next_zoom, self.next_x, self.next_y);
+        let max_tile_no = 2u32.pow(self.next_zoom as u32) - 1;
+        if self.next_y < max_tile_no {
+            self.next_y += 1;
+        } else if self.next_x < max_tile_no {
+            self.next_x += 1;
+            self.next_y = 0;
+        } else  if self.next_zoom < std::u8::MAX {
+            self.next_zoom += 1;
+            self.next_x = 0;
+            self.next_y = 0;
+        }
+
+        tile
+    }
 }
 
 fn tile_nw_lat_lon(zoom: u8, x: f32, y: f32) -> LatLon {
@@ -213,7 +244,28 @@ mod test {
         assert_eq!(children[3], Tile::new(1, 1, 1).unwrap());
         assert_eq!(children[3].tc_path("png"), "1/000/000/001/000/000/001.png");
         
+    }
 
+    #[test]
+    fn all_tiles() {
+        use super::Tile;
+
+        let mut it = Tile::all();
+
+        assert_eq!(it.next(), Tile::new(0, 0, 0));
+        assert_eq!(it.next(), Tile::new(1, 0, 0));
+        assert_eq!(it.next(), Tile::new(1, 0, 1));
+        assert_eq!(it.next(), Tile::new(1, 1, 0));
+        assert_eq!(it.next(), Tile::new(1, 1, 1));
+        assert_eq!(it.next(), Tile::new(2, 0, 0));
+        assert_eq!(it.next(), Tile::new(2, 0, 1));
+        assert_eq!(it.next(), Tile::new(2, 0, 2));
+        assert_eq!(it.next(), Tile::new(2, 0, 3));
+        assert_eq!(it.next(), Tile::new(2, 1, 0));
+
+        let it = Tile::all();
+        let z5_tiles: Vec<Tile> = it.skip_while(|t| { t.zoom < 5 }).take(1).collect();
+        assert_eq!(z5_tiles[0], Tile::new(5, 0, 0).unwrap());
 
     }
 }
