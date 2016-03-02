@@ -419,7 +419,7 @@ mod test {
 
     #[test]
     fn bbox_overlaps() {
-        use super::{Tile, BBox};
+        use super::Tile;
 
         let tile = Tile::new(7, 63, 42).unwrap();
         let parent_tile = tile.parent().unwrap();
