@@ -1,10 +1,10 @@
 [package]
-name = "slippy-map-tiles"
-version = "0.1.0"
 authors = ["Rory McCann <rory@technomancy.org>"]
-license = "AGPL-3.0"
-repository = "https://github.com/rory/slippy-map-tiles-rs"
 description = "Work with Slippy map tile names, found in OpenStreetMap"
 keywords = ["openstreetmap", "osm"]
+license = "AGPL-3.0"
+name = "slippy-map-tiles"
+repository = "https://github.com/rory/slippy-map-tiles-rs"
+version = "0.1.1"
 
 [dependencies]
