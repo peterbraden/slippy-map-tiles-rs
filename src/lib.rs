@@ -91,6 +91,13 @@ impl Tile {
         AllTilesIterator{ next_zoom: 0, next_x: 0, next_y: 0}
     }
 
+    pub fn bbox(&self) -> BBox {
+        let nw = self.nw_corner();
+        let se = self.se_corner();
+
+        BBox::new_from_points(&nw, &se)
+    }
+
 }
 
 pub struct AllTilesIterator {
@@ -147,6 +154,37 @@ impl LatLon {
     }
 
 }
+
+#[derive(PartialEq, Debug)]
+pub struct BBox {
+    top: f32,
+    left: f32,
+    bottom: f32,
+    right: f32,
+}
+
+impl BBox {
+    pub fn new(top: f32, left: f32, bottom: f32, right: f32) -> Option<BBox> {
+        //let top = if top > bottom { top } else { bottom };
+        //let bottom = if top > bottom { bottom } else { top };
+        //let left = if right > left { left } else { right };
+        //let right = if right > left { right } else { left };
+
+        if top <= 90. && top >= -90. && bottom <= 90. && bottom >= -90.
+             && left <= 180. && left >= -180. && right <= 180. && right >= -180. {
+             Some(BBox{ top: top, left: left, bottom: bottom, right: right })
+        } else {
+            None
+        }
+    }
+
+    pub fn new_from_points(topleft: &LatLon, bottomright: &LatLon) -> BBox {
+        BBox{ top: topleft.lat, left: topleft.lon, bottom: bottomright.lat, right: bottomright.lon }
+    }
+
+
+}
+
 
 fn xy_to_tc(x: u32, y: u32) -> [String; 6] {
     [
@@ -272,6 +310,31 @@ mod test {
         let it = Tile::all();
         let z5_tiles: Vec<Tile> = it.skip_while(|t| { t.zoom < 5 }).take(1).collect();
         assert_eq!(z5_tiles[0], Tile::new(5, 0, 0).unwrap());
+
+    }
+
+    #[test]
+    fn bbox_create() {
+        use super::{BBox, LatLon};
+
+        // left=5.53 bottom=47.23 right=15.38 top=54.96
+        let b1: Option<BBox> = BBox::new(54.9, 5.5, 47.2, 15.38);
+        assert!(b1.is_some());
+        let b1 = b1.unwrap();
+        assert_eq!(b1.top, 54.9);
+
+        let p1 = LatLon::new(54.9, 5.5).unwrap();
+        let p2 = LatLon::new(47.2, 15.38).unwrap();
+        let b2: BBox = BBox::new_from_points(&p1, &p2);
+        assert_eq!(b1, b2);
+    }
+
+    #[test]
+    fn bbox_tile() {
+        use super::{BBox, Tile};
+        let t = Tile::new(0, 0, 0).unwrap();
+        assert_eq!(t.bbox(), BBox::new(85.05112, -180., -85.05112, 180.).unwrap());
+
 
     }
 }
