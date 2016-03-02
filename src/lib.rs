@@ -1,4 +1,4 @@
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub struct Tile {
     zoom: u8,
     x: u32,
@@ -191,6 +191,53 @@ impl BBox {
         (self.left < other.right && self.right > other.left && self.top > other.bottom && self.bottom < other.top)
     }
 
+    pub fn tiles(&self) -> BBoxTilesIterator {
+        BBoxTilesIterator::new(&self)
+    }
+
+}
+
+pub struct BBoxTilesIterator<'a> {
+    bbox: &'a BBox,
+    tiles: Vec<Tile>,
+    tile_index: usize,
+}
+
+impl<'a> BBoxTilesIterator<'a> {
+    pub fn new(bbox: &'a BBox) -> BBoxTilesIterator<'a> {
+        // Everything is in 0/0/0, so start with that.
+        BBoxTilesIterator{ bbox: bbox, tiles: vec![Tile::new(0, 0, 0).unwrap()], tile_index: 0 }
+    }
+}
+
+impl<'a> Iterator for BBoxTilesIterator<'a> {
+    type Item = Tile;
+
+    fn next(&mut self) -> Option<Tile> {
+        if self.tile_index >= self.tiles.len() {
+            // We've sent off all the existing tiles, so start looking at the children
+            let mut new_tiles: Vec<Tile> = Vec::with_capacity(self.tiles.len()*4);
+            for t in self.tiles.iter() {
+                match t.subtiles() {
+                    None => { },
+                    Some(sub) => {
+                        if self.bbox.overlaps_bbox(&sub[0].bbox()) { new_tiles.push(sub[0]); }
+                        if self.bbox.overlaps_bbox(&sub[1].bbox()) { new_tiles.push(sub[1]); }
+                        if self.bbox.overlaps_bbox(&sub[2].bbox()) { new_tiles.push(sub[2]); }
+                        if self.bbox.overlaps_bbox(&sub[3].bbox()) { new_tiles.push(sub[3]); }
+                    }
+                }
+            }
+
+            new_tiles.shrink_to_fit();
+            self.tiles = new_tiles;
+            self.tile_index = 0;
+        }
+
+        let tile = self.tiles[self.tile_index].clone();
+        self.tile_index += 1;
+        Some(tile)
+    }
 }
 
 
@@ -381,5 +428,24 @@ mod test {
 
         let tile2 = Tile::new(7, 63, 43).unwrap();
         assert!(!tile.bbox().overlaps_bbox(&tile2.bbox()));
+    }
+
+    #[test]
+    fn bbox_tile_iter() {
+        use super::{BBox, Tile};
+
+        // left=-11.32 bottom=51.11 right=-4.97 top=55.7
+        let ie_bbox = BBox::new(55.7, -11.32, 51.11, -4.97).unwrap();
+        let mut tiles = ie_bbox.tiles();
+        assert_eq!(tiles.next(), Tile::new(0, 0, 0));
+        assert_eq!(tiles.next(), Tile::new(1, 0, 0));
+        assert_eq!(tiles.next(), Tile::new(2, 1, 1));
+        assert_eq!(tiles.next(), Tile::new(3, 3, 2));
+        assert_eq!(tiles.next(), Tile::new(4, 7, 5));
+        assert_eq!(tiles.next(), Tile::new(5, 14, 10));
+        assert_eq!(tiles.next(), Tile::new(5, 15, 10));
+        assert_eq!(tiles.next(), Tile::new(6, 29, 20));
+        assert_eq!(tiles.next(), Tile::new(6, 29, 21));
+
     }
 }
