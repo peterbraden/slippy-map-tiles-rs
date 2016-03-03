@@ -11,7 +11,9 @@ pub struct Tile {
 
 impl Tile {
     pub fn new(zoom: u8, x: u32, y: u32) -> Option<Tile> {
-        if x < 2u32.pow(zoom as u32) && y < 2u32.pow(zoom as u32) {
+        if zoom >= 100 {
+            None
+        } else if x < 2u32.pow(zoom as u32) && y < 2u32.pow(zoom as u32) {
             Some(Tile { zoom: zoom, x: x, y: y })
         } else {
             None
@@ -337,6 +339,8 @@ mod test {
 
         let tile = Tile::new(1, 0, 0);
         assert_eq!(tile.is_none(), false);
+
+        assert!(Tile::new(100, 0, 0).is_none());
     }
 
     #[test]
