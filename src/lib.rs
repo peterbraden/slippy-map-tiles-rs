@@ -1,3 +1,7 @@
+extern crate regex;
+
+use regex::Regex;
+
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub struct Tile {
     zoom: u8,
@@ -12,6 +16,39 @@ impl Tile {
         } else {
             None
         }
+    }
+
+    pub fn from_tms(tms: &str) -> Option<Tile> {
+        // FIXME statically compile this regex or regex macro
+        let re = Regex::new("^/?(?P<zoom>[0-9]?[0-9])/(?P<x>[0-9]{1,10})/(?P<y>[0-9]{1,10})(\\.[a-zA-Z]{3,4})?$").unwrap();
+
+        let caps = re.captures(tms);
+        if caps.is_none() {
+            return None;
+        }
+        let caps = caps.unwrap();
+
+        let zoom = caps.name("zoom");
+        let x = caps.name("x");
+        let y = caps.name("y");
+        if zoom.is_none() || x.is_none() || y.is_none() {
+            return None;
+        }
+        let zoom = zoom.unwrap();
+        let x = x.unwrap();
+        let y = y.unwrap();
+
+        let zoom = zoom.parse();
+        let x = x.parse();
+        let y = y.parse();
+        if zoom.is_err() || x.is_err() || y.is_err() {
+            return None;
+        }
+        let zoom: u8 = zoom.unwrap();
+        let x: u32 = x.unwrap();
+        let y: u32 = y.unwrap();
+
+        Tile::new(zoom, x, y)
     }
 
     pub fn parent(&self) -> Option<Tile> {
@@ -343,6 +380,37 @@ mod test {
         assert_eq!(children[3], Tile::new(1, 1, 1).unwrap());
         assert_eq!(children[3].tc_path("png"), "1/000/000/001/000/000/001.png");
         
+    }
+
+    #[test]
+    fn tile_from_tms() {
+        use super::Tile;
+
+        fn known_good(tms: &str, zoom: u8, x: u32, y: u32) {
+            let tile = Tile::from_tms(tms);
+            assert!(tile.is_some());
+            let tile = tile.unwrap();
+            assert_eq!(tile.zoom, zoom);
+            assert_eq!(tile.x, x);
+            assert_eq!(tile.y, y);
+        }
+
+        fn known_bad(tms: &str) {
+            let tile = Tile::from_tms(tms);
+            assert!(tile.is_none());
+        }
+
+        known_good("/0/0/0.png", 0, 0, 0);
+        known_good("/17/1/1234.png", 17, 1, 1234);
+        known_good("17/1/1234", 17, 1, 1234);
+        known_good("17/1/1234.jpeg", 17, 1, 1234);
+        known_good("/17/1/1234.jpeg", 17, 1, 1234);
+
+        known_bad("foo");
+        known_bad("/17/1/1234.jpegz");
+        known_bad("/17z/1/1234.jpegz");
+        known_bad("/0/1/1.png");
+        known_bad("/100/1/1.png");
     }
 
     #[test]
