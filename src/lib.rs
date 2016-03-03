@@ -333,12 +333,12 @@ mod test {
         use super::Tile;
 
         let tile = Tile::new(1, 5, 5);
-        assert_eq!(tile.is_none(), true);
+        assert!(tile.is_none());
 
-        assert_eq!(Tile::new(4, 8, 9).is_some(), true);
+        assert!(Tile::new(4, 8, 9).is_some());
 
         let tile = Tile::new(1, 0, 0);
-        assert_eq!(tile.is_none(), false);
+        assert!(tile.is_some());
 
         assert!(Tile::new(100, 0, 0).is_none());
     }
@@ -350,7 +350,7 @@ mod test {
 
         let tile = tile.unwrap();
         let parent = tile.parent();
-        assert_eq!(parent.is_none(), false);
+        assert!(parent.is_some());
         let parent = parent.unwrap();
         assert_eq!(parent, Tile::new(0, 0, 0).unwrap());
 
