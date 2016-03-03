@@ -53,6 +53,8 @@ impl Tile {
         Tile::new(zoom, x, y)
     }
 
+    // TODO Add from_tc to parse the directory hiearchy so we can turn a filename in to a tile.
+
     pub fn parent(&self) -> Option<Tile> {
         match self.zoom {
             0 => {
