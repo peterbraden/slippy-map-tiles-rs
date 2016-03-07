@@ -664,7 +664,6 @@ mod test {
 
     #[test]
     fn all_tiles_to_zoom_iter() {
-        use std::iter::ExactSizeIterator;
         use super::Tile;
 
         let mut it = Tile::all_to_zoom(1);
