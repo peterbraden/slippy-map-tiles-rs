@@ -1,3 +1,13 @@
+<a name="v0.3.1"></a>
+### v0.3.1 (2016-03-07)
+
+
+#### Bug Fixes
+
+*   Make Tile.{zoom/x/y} pub so we can access them ([6dca0ac3](6dca0ac3))
+
+
+
 <a name="v0.3.0"></a>
 ## v0.3.0 (2016-03-03)
 
