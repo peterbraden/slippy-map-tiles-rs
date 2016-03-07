@@ -397,7 +397,9 @@ fn xy_to_mp(x: u32, y: u32) -> [String; 4] {
 }
 
 fn num_tiles_in_zoom(zoom: u8) -> Option<usize> {
+    // From experience it looks like you can't calc above zoom >= 6
     if zoom == 0 {
+        // Special case of known value
         Some(1)
     } else if zoom <= 5 {
         Some(2u64.pow(2u32.pow(zoom as u32)) as usize)
@@ -639,11 +641,8 @@ mod test {
         assert_eq!(num_tiles_in_zoom(5), Some(4_294_967_296));
 
         assert_eq!(num_tiles_in_zoom(6), None);
+
         // Can't do these because the integers overflow
-        //assert_eq!(num_tiles_in_zoom(6), 65536);
-        //assert_eq!(num_tiles_in_zoom(7), 65536);
-        //assert_eq!(num_tiles_in_zoom(8), 65536);
-        //assert_eq!(num_tiles_in_zoom(9), 65536);
         //assert_eq!(num_tiles_in_zoom(17), 17_179_869_184);
         //assert_eq!(num_tiles_in_zoom(18), 68_719_476_736);
         //assert_eq!(num_tiles_in_zoom(19), 274_877_906_944);
