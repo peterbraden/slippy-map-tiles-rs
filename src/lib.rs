@@ -179,6 +179,29 @@ pub struct AllTilesToZoomIterator {
     next_y: u32,
 }
 
+fn remaining_in_this_zoom(next_zoom: u8, next_x: u32, next_y: u32) -> Option<usize> {
+    if next_zoom == 0 && next_x == 0 && next_y == 0 {
+        return Some(1);
+    }
+
+    let max_tile_no = 2u32.pow(next_zoom as u32);
+    let remaining_in_column = max_tile_no - next_y;
+    let remaining_in_column = remaining_in_column as usize;
+    let remaining_rows = max_tile_no - next_x -1;
+    let remaining_rows = remaining_rows as usize;
+
+    let remaining_after_this_column = remaining_rows.checked_mul(max_tile_no as usize);
+    if remaining_after_this_column.is_none() {
+        return None;
+    }
+    let remaining_after_this_column = remaining_after_this_column.unwrap();
+
+
+    remaining_in_column.checked_add(remaining_after_this_column)
+}
+
+
+
 
 impl Iterator for AllTilesToZoomIterator {
     type Item = Tile;
@@ -203,6 +226,39 @@ impl Iterator for AllTilesToZoomIterator {
         tile
     }
 
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        if self.next_zoom > self.max_zoom {
+            return (0, Some(0));
+        }
+
+        let remaining_in_this_level = remaining_in_this_zoom(self.next_zoom, self.next_x, self.next_y);
+        if remaining_in_this_level.is_none() {
+            return (std::usize::MAX, None);
+        }
+        let remaining_in_this_level = remaining_in_this_level.unwrap();
+
+
+        let mut total: usize = remaining_in_this_level as usize;
+        for i in (self.next_zoom+1)..(self.max_zoom+1) {
+            let tiles_this_zoom = num_tiles_in_zoom(i);
+            if tiles_this_zoom.is_none() {
+                return (std::usize::MAX, None);
+            }
+
+            let tiles_this_zoom = tiles_this_zoom.unwrap();
+
+            let new_total = total.checked_add(tiles_this_zoom);
+            if new_total.is_none() {
+                return (std::usize::MAX, None);
+            }
+            total = new_total.unwrap();
+
+        }
+
+        // If we've got to here, we know how big it is
+        (total, Some(total))
+    }
 }
 
 
@@ -594,6 +650,20 @@ mod test {
     }
 
     #[test]
+    fn test_remaining_in_zoom() {
+        use super::remaining_in_this_zoom;
+
+        assert_eq!(remaining_in_this_zoom(0, 0, 0), Some(1));
+
+        assert_eq!(remaining_in_this_zoom(1, 0, 0), Some(4));
+        assert_eq!(remaining_in_this_zoom(1, 0, 1), Some(3));
+        assert_eq!(remaining_in_this_zoom(1, 1, 0), Some(2));
+        assert_eq!(remaining_in_this_zoom(1, 1, 1), Some(1));
+
+        assert_eq!(remaining_in_this_zoom(2, 0, 0), Some(16));
+    }
+
+    #[test]
     fn all_tiles_to_zoom_iter() {
         use std::iter::ExactSizeIterator;
         use super::Tile;
@@ -614,6 +684,25 @@ mod test {
         assert_eq!(Tile::all_to_zoom(3).count(), 85);
 
         assert_eq!(Tile::all_to_zoom(2).last(), Tile::new(2, 3, 3));
+
+        // check the size hints
+        assert_eq!(Tile::all_to_zoom(0).size_hint(), (1, Some(1)));
+
+        let mut it = Tile::all_to_zoom(1);
+        assert_eq!(it.size_hint(), (5, Some(5)));
+        assert!(it.next().is_some());
+        assert_eq!(it.size_hint(), (4, Some(4)));
+        assert!(it.next().is_some());
+        assert_eq!(it.size_hint(), (3, Some(3)));
+        assert!(it.next().is_some());
+        assert_eq!(it.size_hint(), (2, Some(2)));
+        assert!(it.next().is_some());
+        assert_eq!(it.size_hint(), (1, Some(1)));
+        assert!(it.next().is_some());
+        assert_eq!(it.size_hint(), (0, Some(0)));
+        assert!(it.next().is_none());
+
+
 
         assert_eq!(Tile::all_to_zoom(2).size_hint(), (21, Some(21)));
 
