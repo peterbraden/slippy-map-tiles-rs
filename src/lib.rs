@@ -4,9 +4,9 @@ use regex::Regex;
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub struct Tile {
-    zoom: u8,
-    x: u32,
-    y: u32,
+    pub zoom: u8,
+    pub x: u32,
+    pub y: u32,
 }
 
 impl Tile {
