@@ -701,9 +701,13 @@ mod test {
         assert_eq!(it.size_hint(), (0, Some(0)));
         assert!(it.next().is_none());
 
-
-
         assert_eq!(Tile::all_to_zoom(2).size_hint(), (21, Some(21)));
+
+        assert_eq!(Tile::all_to_zoom(3).size_hint(), (277, Some(277)));
+        assert_eq!(Tile::all_to_zoom(4).size_hint(), (65_813, Some(65_813)));
+        assert_eq!(Tile::all_to_zoom(5).size_hint(), (4_295_033_109, Some(4_295_033_109)));
+        assert_eq!(Tile::all_to_zoom(6).size_hint(), (18_446_744_073_709_551_615, None));
+        assert_eq!(Tile::all_to_zoom(7).size_hint(), (18_446_744_073_709_551_615, None));
 
     }
 }
