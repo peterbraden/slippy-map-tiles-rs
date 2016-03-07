@@ -340,12 +340,13 @@ fn xy_to_mp(x: u32, y: u32) -> [String; 4] {
     ]
 }
 
-fn num_tiles_in_zoom(zoom: u8) -> usize {
-    // FIXME doesn't work for zoom >= 6
+fn num_tiles_in_zoom(zoom: u8) -> Option<usize> {
     if zoom == 0 {
-        1
-    } else {
-        2u64.pow(2u32.pow(zoom as u32)) as usize
+        Some(1)
+    } else if zoom <= 5 {
+        Some(2u64.pow(2u32.pow(zoom as u32)) as usize)
+    } else { 
+        None
     }
 }
 
@@ -574,13 +575,14 @@ mod test {
     fn test_num_tiles_in_zoom() {
         use super::num_tiles_in_zoom;
 
-        assert_eq!(num_tiles_in_zoom(0), 1);
-        assert_eq!(num_tiles_in_zoom(1), 4);
-        assert_eq!(num_tiles_in_zoom(2), 16);
-        assert_eq!(num_tiles_in_zoom(3), 256);
-        assert_eq!(num_tiles_in_zoom(4), 65_536);
-        assert_eq!(num_tiles_in_zoom(5), 4_294_967_296);
+        assert_eq!(num_tiles_in_zoom(0), Some(1));
+        assert_eq!(num_tiles_in_zoom(1), Some(4));
+        assert_eq!(num_tiles_in_zoom(2), Some(16));
+        assert_eq!(num_tiles_in_zoom(3), Some(256));
+        assert_eq!(num_tiles_in_zoom(4), Some(65_536));
+        assert_eq!(num_tiles_in_zoom(5), Some(4_294_967_296));
 
+        assert_eq!(num_tiles_in_zoom(6), None);
         // Can't do these because the integers overflow
         //assert_eq!(num_tiles_in_zoom(6), 65536);
         //assert_eq!(num_tiles_in_zoom(7), 65536);
