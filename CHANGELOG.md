@@ -1,3 +1,19 @@
+<a name="v0.4.0"></a>
+## v0.4.0 (2016-03-07)
+
+
+#### Bug Fixes
+
+*   Make num_tiles_in_zoom more robust & return Option ([d340bb0d](d340bb0d))
+
+#### Features
+
+*   Add size_hint to AllTilesToZoomIterator ([048632b2](048632b2))
+*   Add iterator that stops after a certain zoom ([621454e6](621454e6))
+*   Add num_tiles_in_zoom function ([b8890c28](b8890c28))
+
+
+
 <a name="v0.3.1"></a>
 ### v0.3.1 (2016-03-07)
 
