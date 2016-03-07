@@ -132,6 +132,10 @@ impl Tile {
         AllTilesIterator{ next_zoom: 0, next_x: 0, next_y: 0}
     }
 
+    pub fn all_to_zoom(max_zoom: u8) -> AllTilesToZoomIterator {
+        AllTilesToZoomIterator{ max_zoom: max_zoom, next_zoom: 0, next_x: 0, next_y: 0}
+    }
+
     pub fn bbox(&self) -> BBox {
         let nw = self.nw_corner();
         let se = self.se_corner();
@@ -167,6 +171,40 @@ impl Iterator for AllTilesIterator {
         tile
     }
 }
+
+pub struct AllTilesToZoomIterator {
+    max_zoom: u8,
+    next_zoom: u8,
+    next_x: u32,
+    next_y: u32,
+}
+
+
+impl Iterator for AllTilesToZoomIterator {
+    type Item = Tile;
+
+    fn next(&mut self) -> Option<Tile> {
+        if self.next_zoom > self.max_zoom {
+            return None;
+        }
+        let tile = Tile::new(self.next_zoom, self.next_x, self.next_y);
+        let max_tile_no = 2u32.pow(self.next_zoom as u32) - 1;
+        if self.next_y < max_tile_no {
+            self.next_y += 1;
+        } else if self.next_x < max_tile_no {
+            self.next_x += 1;
+            self.next_y = 0;
+        } else  if self.next_zoom < std::u8::MAX {
+            self.next_zoom += 1;
+            self.next_x = 0;
+            self.next_y = 0;
+        }
+
+        tile
+    }
+
+}
+
 
 fn tile_nw_lat_lon(zoom: u8, x: f32, y: f32) -> LatLon {
     let n: f32 = 2f32.powi(zoom as i32);
@@ -553,4 +591,29 @@ mod test {
         //assert_eq!(num_tiles_in_zoom(19), 274_877_906_944);
     }
 
+    #[test]
+    fn all_tiles_to_zoom_iter() {
+        use std::iter::ExactSizeIterator;
+        use super::Tile;
+
+        let mut it = Tile::all_to_zoom(1);
+
+        assert_eq!(it.next(), Tile::new(0, 0, 0));
+        assert_eq!(it.next(), Tile::new(1, 0, 0));
+        assert_eq!(it.next(), Tile::new(1, 0, 1));
+        assert_eq!(it.next(), Tile::new(1, 1, 0));
+        assert_eq!(it.next(), Tile::new(1, 1, 1));
+        assert_eq!(it.next(), None);
+
+
+        assert_eq!(Tile::all_to_zoom(0).count(), 1);
+        assert_eq!(Tile::all_to_zoom(1).count(), 5);
+        assert_eq!(Tile::all_to_zoom(2).count(), 21);
+        assert_eq!(Tile::all_to_zoom(3).count(), 85);
+
+        assert_eq!(Tile::all_to_zoom(2).last(), Tile::new(2, 3, 3));
+
+        assert_eq!(Tile::all_to_zoom(2).size_hint(), (21, Some(21)));
+
+    }
 }
