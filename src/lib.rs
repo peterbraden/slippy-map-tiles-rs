@@ -302,6 +302,15 @@ fn xy_to_mp(x: u32, y: u32) -> [String; 4] {
     ]
 }
 
+fn num_tiles_in_zoom(zoom: u8) -> usize {
+    // FIXME doesn't work for zoom >= 6
+    if zoom == 0 {
+        1
+    } else {
+        2u64.pow(2u32.pow(zoom as u32)) as usize
+    }
+}
+
 // TODO do mod_tile tile format
 
 mod test {
@@ -522,4 +531,26 @@ mod test {
         assert_eq!(tiles.next(), Tile::new(6, 29, 21));
 
     }
+
+    #[test]
+    fn test_num_tiles_in_zoom() {
+        use super::num_tiles_in_zoom;
+
+        assert_eq!(num_tiles_in_zoom(0), 1);
+        assert_eq!(num_tiles_in_zoom(1), 4);
+        assert_eq!(num_tiles_in_zoom(2), 16);
+        assert_eq!(num_tiles_in_zoom(3), 256);
+        assert_eq!(num_tiles_in_zoom(4), 65_536);
+        assert_eq!(num_tiles_in_zoom(5), 4_294_967_296);
+
+        // Can't do these because the integers overflow
+        //assert_eq!(num_tiles_in_zoom(6), 65536);
+        //assert_eq!(num_tiles_in_zoom(7), 65536);
+        //assert_eq!(num_tiles_in_zoom(8), 65536);
+        //assert_eq!(num_tiles_in_zoom(9), 65536);
+        //assert_eq!(num_tiles_in_zoom(17), 17_179_869_184);
+        //assert_eq!(num_tiles_in_zoom(18), 68_719_476_736);
+        //assert_eq!(num_tiles_in_zoom(19), 274_877_906_944);
+    }
+
 }
