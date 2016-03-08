@@ -707,6 +707,15 @@ mod test {
         assert_eq!(Tile::all_to_zoom(5).size_hint(), (4_295_033_109, Some(4_295_033_109)));
         assert_eq!(Tile::all_to_zoom(6).size_hint(), (18_446_744_073_709_551_615, None));
         assert_eq!(Tile::all_to_zoom(7).size_hint(), (18_446_744_073_709_551_615, None));
+        assert_eq!(Tile::all_to_zoom(8).size_hint(), (18_446_744_073_709_551_615, None));
+        assert_eq!(Tile::all_to_zoom(9).size_hint(), (18_446_744_073_709_551_615, None));
+        assert_eq!(Tile::all_to_zoom(10).size_hint(), (18_446_744_073_709_551_615, None));
+        assert_eq!(Tile::all_to_zoom(11).size_hint(), (18_446_744_073_709_551_615, None));
+        assert_eq!(Tile::all_to_zoom(12).size_hint(), (18_446_744_073_709_551_615, None));
+        assert_eq!(Tile::all_to_zoom(13).size_hint(), (18_446_744_073_709_551_615, None));
+        assert_eq!(Tile::all_to_zoom(14).size_hint(), (18_446_744_073_709_551_615, None));
+        assert_eq!(Tile::all_to_zoom(15).size_hint(), (18_446_744_073_709_551_615, None));
+        assert_eq!(Tile::all_to_zoom(16).size_hint(), (18_446_744_073_709_551_615, None));
 
     }
 }
