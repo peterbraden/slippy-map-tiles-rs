@@ -2,6 +2,7 @@ extern crate regex;
 
 use regex::Regex;
 
+/// A single tile.
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub struct Tile {
     pub zoom: u8,
@@ -10,6 +11,8 @@ pub struct Tile {
 }
 
 impl Tile {
+    /// Constucts a Tile with the following zoom, x and y values. Returns None if the x/y are
+    /// invalid for that zoom level, or if the zoom is >= 100.
     pub fn new(zoom: u8, x: u32, y: u32) -> Option<Tile> {
         if zoom >= 100 {
             None
@@ -20,6 +23,13 @@ impl Tile {
         }
     }
 
+    /// Constucts a Tile with the following zoom, x and y values based on a TMS URL.
+    /// Returns None if the TMS url is invalid, or those
+    /// # Examples
+    /// ```
+    /// let t = Tile::from_tms("/10/547/380.png");
+    /// assert_eq!(t, Tile::new(10, 547, 380))
+    /// ```
     pub fn from_tms(tms: &str) -> Option<Tile> {
         // FIXME statically compile this regex or regex macro
         let re = Regex::new("^/?(?P<zoom>[0-9]?[0-9])/(?P<x>[0-9]{1,10})/(?P<y>[0-9]{1,10})(\\.[a-zA-Z]{3,4})?$").unwrap();
@@ -55,6 +65,8 @@ impl Tile {
 
     // TODO Add from_tc to parse the directory hiearchy so we can turn a filename in to a tile.
 
+    /// Returns the parent tile for this tile, i.e. the tile at the zoom-1 that this tile is
+    /// inside. None if there is no parent, which is at zoom 0.
     pub fn parent(&self) -> Option<Tile> {
         match self.zoom {
             0 => {
@@ -67,6 +79,9 @@ impl Tile {
         }
     }
 
+    /// Returns the subtiles (child) tiles for this tile. The 4 tiles at zoom+1 which cover this
+    /// tile. Returns None if this is at the maximum permissable zoom level, and hence there are no
+    /// subtiles.
     pub fn subtiles(&self) -> Option<[Tile; 4]> {
         match self.zoom {
             std::u8::MAX => {
@@ -81,14 +96,17 @@ impl Tile {
         }
     }
 
+    /// Returns the LatLon for the centre of this tile.
     pub fn centre_point(&self) -> LatLon {
         tile_nw_lat_lon(self.zoom, (self.x as f32)+0.5, (self.y as f32)+0.5)
     }
 
+    /// Returns the LatLon for the centre of this tile.
     pub fn center_point(&self) -> LatLon {
         self.centre_point()
     }
 
+    /// Returns the LatLon of the top left, i.e. north west corner, of this tile.
     pub fn nw_corner(&self) -> LatLon {
         tile_nw_lat_lon(self.zoom, (self.x as f32), (self.y as f32))
     }
@@ -118,24 +136,32 @@ impl Tile {
         self.se_corner().lon
     }
 
+    /// Returns the TC (TileCache) path for storing this tile.
     pub fn tc_path<T: std::fmt::Display>(&self, ext: T) -> String {
         let tc = xy_to_tc(self.x, self.y);
         format!("{}/{}/{}/{}/{}/{}/{}.{}", self.zoom, tc[0], tc[1], tc[2], tc[3], tc[4], tc[5], ext)
     }
 
+    /// Returns the MP (MapProxy) path for storing this tile.
     pub fn mp_path<T: std::fmt::Display>(&self, ext: T) -> String {
         let mp = xy_to_mp(self.x, self.y);
         format!("{}/{}/{}/{}/{}.{}", self.zoom, mp[0], mp[1], mp[2], mp[3], ext)
     }
 
+    /// Returns an iterator that yields all the tiles possible, starting from 0/0/0. Tiles are
+    /// generated in a breath first manner, with all zoom 1 tiles before zoom 2 etc.
     pub fn all() -> AllTilesIterator {
         AllTilesIterator{ next_zoom: 0, next_x: 0, next_y: 0}
     }
 
+    /// Returns an iterator that yields all the tiles from zoom 0 down to, and including, all the
+    /// tiles at `max_zoom` zoom level.  Tiles are
+    /// generated in a breath first manner, with all zoom 1 tiles before zoom 2 etc.
     pub fn all_to_zoom(max_zoom: u8) -> AllTilesToZoomIterator {
         AllTilesToZoomIterator{ max_zoom: max_zoom, next_zoom: 0, next_x: 0, next_y: 0}
     }
 
+    /// The BBox for this tile.
     pub fn bbox(&self) -> BBox {
         let nw = self.nw_corner();
         let se = self.se_corner();
@@ -145,6 +171,7 @@ impl Tile {
 
 }
 
+/// Iterates over all the tiles in the world.
 pub struct AllTilesIterator {
     next_zoom: u8,
     next_x: u32,
@@ -172,6 +199,7 @@ impl Iterator for AllTilesIterator {
     }
 }
 
+/// Iterates over all the tiles from 0/0/0 up to, and including, `max_zoom`.
 pub struct AllTilesToZoomIterator {
     max_zoom: u8,
     next_zoom: u8,
@@ -273,6 +301,7 @@ fn tile_nw_lat_lon(zoom: u8, x: f32, y: f32) -> LatLon {
     LatLon::new(lat_deg, lon_deg).unwrap()
 }
 
+/// A single point in the world.
 #[derive(PartialEq, Debug)]
 pub struct LatLon {
     lat: f32,
@@ -280,6 +309,8 @@ pub struct LatLon {
 }
 
 impl LatLon {
+    /// Constructs a LatLon from a given `lat` and `lon`. Returns `None` if the lat or lon is
+    /// invalid, e.g. a lat of 100.
     fn new(lat: f32, lon: f32) -> Option<LatLon> {
         if lat <= 90f32 && lat >= -90f32 && lon <= 180f32 && lon >= -180f32 {
             Some(LatLon{ lat: lat, lon: lon })
@@ -290,6 +321,7 @@ impl LatLon {
 
 }
 
+/// A Bounding box
 #[derive(PartialEq, Debug)]
 pub struct BBox {
     top: f32,
@@ -299,6 +331,8 @@ pub struct BBox {
 }
 
 impl BBox {
+    /// Construct a new BBox from the given max and min latitude and longitude. Returns `None` if
+    /// the lat or lon is invalid, e.g. a lon of 200
     pub fn new(top: f32, left: f32, bottom: f32, right: f32) -> Option<BBox> {
         //let top = if top > bottom { top } else { bottom };
         //let bottom = if top > bottom { bottom } else { top };
@@ -313,6 +347,7 @@ impl BBox {
         }
     }
 
+    /// Given two points, return the bounding box specified by those 2 points
     pub fn new_from_points(topleft: &LatLon, bottomright: &LatLon) -> BBox {
         BBox{ top: topleft.lat, left: topleft.lon, bottom: bottomright.lat, right: bottomright.lon }
     }
