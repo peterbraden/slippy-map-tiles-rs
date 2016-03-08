@@ -27,6 +27,7 @@ impl Tile {
     /// Returns None if the TMS url is invalid, or those
     /// # Examples
     /// ```
+    /// use slippy_map_tiles::Tile;
     /// let t = Tile::from_tms("/10/547/380.png");
     /// assert_eq!(t, Tile::new(10, 547, 380))
     /// ```
