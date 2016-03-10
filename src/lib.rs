@@ -353,15 +353,19 @@ impl BBox {
         BBox{ top: topleft.lat, left: topleft.lon, bottom: bottomright.lat, right: bottomright.lon }
     }
 
+    /// Return true iff this point is in this bbox
     pub fn contains_point(&self, point: &LatLon) -> bool {
         (point.lat <= self.top && point.lat > self.bottom && point.lon >= self.left && point.lon < self.right)
     }
 
+
+    /// Returns true iff this bbox and `other` share at least one point
     pub fn overlaps_bbox(&self, other: &BBox) -> bool {
         // FXME check top & left edges
         (self.left < other.right && self.right > other.left && self.top > other.bottom && self.bottom < other.top)
     }
 
+    /// Iterate over all the tiles from z0 onwards that this bbox is in
     pub fn tiles(&self) -> BBoxTilesIterator {
         BBoxTilesIterator::new(&self)
     }
@@ -412,6 +416,7 @@ impl<'a> Iterator for BBoxTilesIterator<'a> {
 }
 
 
+/// Convert x & y to a TileCache (tc) directory parts
 fn xy_to_tc(x: u32, y: u32) -> [String; 6] {
     [
         format!("{:03}", x/1_000_000),
@@ -423,6 +428,7 @@ fn xy_to_tc(x: u32, y: u32) -> [String; 6] {
     ]
 }
 
+/// Convert x & y to a MapProxy (mp) directory parts
 fn xy_to_mp(x: u32, y: u32) -> [String; 4] {
     [
         format!("{:04}", x/10_000),
@@ -432,6 +438,7 @@ fn xy_to_mp(x: u32, y: u32) -> [String; 4] {
     ]
 }
 
+/// How many times are in this soom level? Returns None if there would be a usize overflow
 fn num_tiles_in_zoom(zoom: u8) -> Option<usize> {
     // From experience it looks like you can't calc above zoom >= 6
     if zoom == 0 {
