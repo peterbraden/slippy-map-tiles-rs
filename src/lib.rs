@@ -1,3 +1,4 @@
+#[macro_use] extern crate lazy_static;
 extern crate regex;
 
 use regex::Regex;
@@ -32,10 +33,11 @@ impl Tile {
     /// assert_eq!(t, Tile::new(10, 547, 380))
     /// ```
     pub fn from_tms(tms: &str) -> Option<Tile> {
-        // FIXME statically compile this regex or regex macro
-        let re = Regex::new("^/?(?P<zoom>[0-9]?[0-9])/(?P<x>[0-9]{1,10})/(?P<y>[0-9]{1,10})(\\.[a-zA-Z]{3,4})?$").unwrap();
+        lazy_static! {
+            static ref RE: Regex = Regex::new("^/?(?P<zoom>[0-9]?[0-9])/(?P<x>[0-9]{1,10})/(?P<y>[0-9]{1,10})(\\.[a-zA-Z]{3,4})?$").unwrap();
+        }
 
-        let caps = re.captures(tms);
+        let caps = RE.captures(tms);
         if caps.is_none() {
             return None;
         }
