@@ -1,3 +1,13 @@
+<a name="v0.5.0"></a>
+## v0.5.0 (2016-03-17)
+
+
+#### Features
+
+*   Regex for TMS parsing now statically created ([ce9fa5f4](ce9fa5f4))
+
+
+
 <a name="v0.4.0"></a>
 ## v0.4.0 (2016-03-07)
 
