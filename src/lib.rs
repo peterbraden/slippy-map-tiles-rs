@@ -716,6 +716,14 @@ mod test {
         assert_eq!(bbox.bottom(), 30.);
         assert_eq!(bbox.right(), 40.);
 
+        let bbox = BBox::new_from_string("71.6,-25.93,35.55,48.9");
+        assert!(bbox.is_some());
+        let bbox = bbox.unwrap();
+        assert_eq!(bbox.top(), 71.6);
+        assert_eq!(bbox.left(), -25.93);
+        assert_eq!(bbox.bottom(), 35.55);
+        assert_eq!(bbox.right(), 48.9);
+
         fn known_bad(s: &str) {
             assert!(BBox::new_from_string(s).is_none());
         }
