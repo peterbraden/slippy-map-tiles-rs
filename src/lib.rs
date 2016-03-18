@@ -34,7 +34,7 @@ impl Tile {
     /// ```
     pub fn from_tms(tms: &str) -> Option<Tile> {
         lazy_static! {
-            static ref RE: Regex = Regex::new("^/?(?P<zoom>[0-9]?[0-9])/(?P<x>[0-9]{1,10})/(?P<y>[0-9]{1,10})(\\.[a-zA-Z]{3,4})?$").unwrap();
+            static ref RE: Regex = Regex::new("/?(?P<zoom>[0-9]?[0-9])/(?P<x>[0-9]{1,10})/(?P<y>[0-9]{1,10})(\\.[a-zA-Z]{3,4})?$").unwrap();
         }
 
         let caps = RE.captures(tms);
@@ -568,6 +568,12 @@ mod test {
         known_bad("/17z/1/1234.jpegz");
         known_bad("/0/1/1.png");
         known_bad("/100/1/1.png");
+
+        known_good("http://tile.example.org/17/1/1234", 17, 1, 1234);
+        known_good("http://tile.example.org/17/1/1234.png", 17, 1, 1234);
+        known_bad("http://tile.example.org/17/1");
+        known_bad("http://tile.example.org/17");
+        known_bad("http://tile.example.org/17/1/1234.png/foo/bar");
     }
 
     #[test]
