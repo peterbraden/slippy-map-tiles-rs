@@ -322,6 +322,8 @@ impl LatLon {
         }
     }
 
+    pub fn lat(&self) -> f32 { self.lat }
+    pub fn lon(&self) -> f32 { self.lon }
 }
 
 /// A Bounding box
@@ -597,6 +599,15 @@ mod test {
         let z5_tiles: Vec<Tile> = it.skip_while(|t| { t.zoom < 5 }).take(1).collect();
         assert_eq!(z5_tiles[0], Tile::new(5, 0, 0).unwrap());
 
+    }
+
+    #[test]
+    fn latlon_create() {
+        use super::LatLon;
+
+        let p1 = LatLon::new(54.9, 5.5).unwrap();
+        assert_eq!(p1.lat(), 54.9);
+        assert_eq!(p1.lon(), 5.5);
     }
 
     #[test]
