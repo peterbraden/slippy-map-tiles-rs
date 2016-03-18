@@ -401,7 +401,7 @@ impl BBox {
         let minlon = minlon.unwrap();
         let maxlon = maxlon.unwrap();
 
-        BBox::new(maxlat, minlon, minlat, maxlon)
+        BBox::new(minlon, minlat, maxlon, maxlat)
 
     }
 
@@ -703,18 +703,18 @@ mod test {
         let bbox = BBox::new_from_string("10 20 30 40");
         assert!(bbox.is_some());
         let bbox = bbox.unwrap();
-        assert_eq!(bbox.top(), 40.);
-        assert_eq!(bbox.left(), 10.);
-        assert_eq!(bbox.bottom(), 20.);
-        assert_eq!(bbox.right(), 30.);
+        assert_eq!(bbox.top(), 10.);
+        assert_eq!(bbox.left(), 20.);
+        assert_eq!(bbox.bottom(), 30.);
+        assert_eq!(bbox.right(), 40.);
 
         let bbox = BBox::new_from_string("10,20,30,40");
         assert!(bbox.is_some());
         let bbox = bbox.unwrap();
-        assert_eq!(bbox.top(), 40.);
-        assert_eq!(bbox.left(), 10.);
-        assert_eq!(bbox.bottom(), 20.);
-        assert_eq!(bbox.right(), 30.);
+        assert_eq!(bbox.top(), 10.);
+        assert_eq!(bbox.left(), 20.);
+        assert_eq!(bbox.bottom(), 30.);
+        assert_eq!(bbox.right(), 40.);
 
         fn known_bad(s: &str) {
             assert!(BBox::new_from_string(s).is_none());
