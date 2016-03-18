@@ -1,3 +1,19 @@
+<a name="v0.6.0"></a>
+## v0.6.0 (2016-03-18)
+
+
+#### Bug Fixes
+
+*   Correct BBox::new_from_string order it's TLBR ([29db0639](29db0639))
+
+#### Features
+
+*   Add BBox::new_from_string ([7553bd1e](7553bd1e))
+*   LatLon now have .lat()/.lon() as getters ([e64472a8](e64472a8))
+*   Tile::from_tms can now take a full URL ([c2ccdbba](c2ccdbba))
+
+
+
 <a name="v0.5.0"></a>
 ## v0.5.0 (2016-03-17)
 
