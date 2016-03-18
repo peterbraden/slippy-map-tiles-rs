@@ -6,9 +6,9 @@ use regex::Regex;
 /// A single tile.
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub struct Tile {
-    pub zoom: u8,
-    pub x: u32,
-    pub y: u32,
+    zoom: u8,
+    x: u32,
+    y: u32,
 }
 
 impl Tile {
@@ -23,6 +23,15 @@ impl Tile {
             None
         }
     }
+
+    /// Return the zoom of this tile
+    pub fn zoom(&self) -> u8 { self.zoom }
+
+    /// Return the X of this tile
+    pub fn x(&self) -> u32 { self.x }
+
+    /// Return the Y of this tile
+    pub fn y(&self) -> u32 { self.y }
 
     /// Constucts a Tile with the following zoom, x and y values based on a TMS URL.
     /// Returns None if the TMS url is invalid, or those
@@ -374,6 +383,17 @@ impl BBox {
         BBoxTilesIterator::new(&self)
     }
 
+    /// Return the top value of this bbox
+    pub fn top(&self) -> f32 { self.top }
+
+    /// Return the bottom value of this bbox
+    pub fn bottom(&self) -> f32 { self.bottom }
+
+    /// Return the left value of this bbox
+    pub fn left(&self) -> f32 { self.left }
+
+    /// Return the right value of this bbox
+    pub fn right(&self) -> f32 { self.right }
 }
 
 pub struct BBoxTilesIterator<'a> {
@@ -503,7 +523,13 @@ mod test {
         use super::{Tile, LatLon};
         let tile = Tile::new(1, 0, 0);
 
+        assert!(tile.is_some());
         let tile = tile.unwrap();
+
+        assert_eq!(tile.zoom(), 1);
+        assert_eq!(tile.x(), 0);
+        assert_eq!(tile.y(), 0);
+
         let parent = tile.parent();
         assert!(parent.is_some());
         let parent = parent.unwrap();
