@@ -123,14 +123,17 @@ impl Tile {
         tile_nw_lat_lon(self.zoom, (self.x as f32), (self.y as f32))
     }
 
+    /// Returns the LatLon of the top right, i.e. north east corner, of this tile.
     pub fn ne_corner(&self) -> LatLon {
         tile_nw_lat_lon(self.zoom, (self.x as f32)+1.0, (self.y as f32))
     }
 
+    /// Returns the LatLon of the bottom left, i.e. south west corner, of this tile.
     pub fn sw_corner(&self) -> LatLon {
         tile_nw_lat_lon(self.zoom, (self.x as f32), (self.y as f32)+1.0)
     }
 
+    /// Returns the LatLon of the bottom right, i.e. south east corner, of this tile.
     pub fn se_corner(&self) -> LatLon {
         tile_nw_lat_lon(self.zoom, (self.x as f32)+1.0, (self.y as f32)+1.0)
     }
