@@ -361,6 +361,47 @@ impl BBox {
         }
     }
 
+    /// Given a string like "$MINLON $MINLAT $MAXLON $MAXLAT" parse that into a BBox. Returns None
+    /// if there is no match.
+    pub fn new_from_string(string: &str) -> Option<BBox> {
+        lazy_static! {
+            //static ref num_regex: &'static str = r"-?[0-9]{1,3}(\.[0-9]{1,10})?";
+            static ref SIMPLE_COPY_SPACE: Regex = Regex::new(r"^(?P<minlon>-?[0-9]{1,3}(\.[0-9]{1,10})?) (?P<minlat>-?[0-9]{1,3}(\.[0-9]{1,10})?) (?P<maxlon>-?[0-9]{1,3}(\.[0-9]{1,10})?) (?P<maxlat>-?[0-9]{1,3}(\.[0-9]{1,10})?)$").unwrap();
+            static ref SIMPLE_COPY_COMMA: Regex = Regex::new(r"^(?P<minlon>-?[0-9]{1,3}(\.[0-9]{1,10})?),(?P<minlat>-?[0-9]{1,3}(\.[0-9]{1,10})?),(?P<maxlon>-?[0-9]{1,3}(\.[0-9]{1,10})?),(?P<maxlat>-?[0-9]{1,3}(\.[0-9]{1,10})?)$").unwrap();
+        }
+        let caps = SIMPLE_COPY_SPACE.captures(string).or_else(|| { SIMPLE_COPY_COMMA.captures(string) } );
+        if caps.is_none() {
+            return None;
+        }
+        let caps = caps.unwrap();
+
+        let minlat = caps.name("minlat");
+        let maxlat = caps.name("maxlat");
+        let minlon = caps.name("minlon");
+        let maxlon = caps.name("maxlon");
+
+        if minlat.is_none() || maxlat.is_none() || minlon.is_none() || maxlon.is_none() {
+            return None;
+        }
+
+        let minlat = minlat.unwrap().parse();
+        let maxlat = maxlat.unwrap().parse();
+        let minlon = minlon.unwrap().parse();
+        let maxlon = maxlon.unwrap().parse();
+
+        if minlat.is_err() || maxlat.is_err() || minlon.is_err() || maxlon.is_err() {
+            return None;
+        }
+
+        let minlat = minlat.unwrap();
+        let maxlat = maxlat.unwrap();
+        let minlon = minlon.unwrap();
+        let maxlon = maxlon.unwrap();
+
+        BBox::new(maxlat, minlon, minlat, maxlon)
+
+    }
+
     /// Given two points, return the bounding box specified by those 2 points
     pub fn new_from_points(topleft: &LatLon, bottomright: &LatLon) -> BBox {
         BBox{ top: topleft.lat, left: topleft.lon, bottom: bottomright.lat, right: bottomright.lon }
@@ -650,6 +691,34 @@ mod test {
         let p2 = LatLon::new(47.2, 15.38).unwrap();
         let b2: BBox = BBox::new_from_points(&p1, &p2);
         assert_eq!(b1, b2);
+    }
+
+    #[test]
+    fn bbox_from_string() {
+        use super::BBox;
+
+        let bbox = BBox::new_from_string("10 20 30 40");
+        assert!(bbox.is_some());
+        let bbox = bbox.unwrap();
+        assert_eq!(bbox.top(), 40.);
+        assert_eq!(bbox.left(), 10.);
+        assert_eq!(bbox.bottom(), 20.);
+        assert_eq!(bbox.right(), 30.);
+
+        let bbox = BBox::new_from_string("10,20,30,40");
+        assert!(bbox.is_some());
+        let bbox = bbox.unwrap();
+        assert_eq!(bbox.top(), 40.);
+        assert_eq!(bbox.left(), 10.);
+        assert_eq!(bbox.bottom(), 20.);
+        assert_eq!(bbox.right(), 30.);
+
+        fn known_bad(s: &str) {
+            assert!(BBox::new_from_string(s).is_none());
+        }
+        known_bad("foo");
+        known_bad("1.1.1.1");
+        known_bad("1  1  1  1");
     }
 
     #[test]
