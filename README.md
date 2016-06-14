@@ -1,6 +1,7 @@
 # slippy-map-tiles
 
 [![Build Status](https://travis-ci.org/rory/slippy-map-tiles-rs.svg?branch=master)](https://travis-ci.org/rory/slippy-map-tiles-rs)
+[![Crates.io](https://img.shields.io/crates/v/slippy-map-tiles.svg?maxAge=2592000)]()
 
 Utilities for working with Slippy map tile names.
 
