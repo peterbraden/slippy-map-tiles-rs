@@ -2,7 +2,7 @@
 authors = ["Rory McCann <rory@technomancy.org>"]
 description = "Work with Slippy map tile names, found in OpenStreetMap"
 keywords = ["openstreetmap", "osm"]
-license = "AGPL-3.0"
+license = "GPL-3.0"
 name = "slippy-map-tiles"
 repository = "https://github.com/rory/slippy-map-tiles-rs"
 version = "0.6.0"
