@@ -1,3 +1,11 @@
+<a name="v0.8.0"></a>
+## v0.8.0 (2016-09-28)
+
+
+#### Features
+
+*   Add a TileStash safe output ([48f7d138](48f7d138))
+
 <a name="v0.7.0"></a>
 ## v0.7.0 (2016-06-14)
 
