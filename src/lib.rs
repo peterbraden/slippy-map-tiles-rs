@@ -76,6 +76,7 @@ impl Tile {
     }
 
     // TODO Add from_tc to parse the directory hiearchy so we can turn a filename in to a tile.
+    // TODO Add from_ts to parse the directory hiearchy so we can turn a filename in to a tile.
 
     /// Returns the parent tile for this tile, i.e. the tile at the zoom-1 that this tile is
     /// inside. None if there is no parent, which is at zoom 0.
@@ -161,6 +162,12 @@ impl Tile {
     pub fn mp_path<T: std::fmt::Display>(&self, ext: T) -> String {
         let mp = xy_to_mp(self.x, self.y);
         format!("{}/{}/{}/{}/{}.{}", self.zoom, mp[0], mp[1], mp[2], mp[3], ext)
+    }
+
+    /// Returns the TS (TileStash safe) path for storing this tile.
+    pub fn ts_path<T: std::fmt::Display>(&self, ext: T) -> String {
+        let ts = xy_to_ts(self.x, self.y);
+        format!("{}/{}/{}/{}/{}.{}", self.zoom, ts[0], ts[1], ts[2], ts[3], ext)
     }
 
     /// Returns an iterator that yields all the tiles possible, starting from 0/0/0. Tiles are
@@ -506,6 +513,16 @@ fn xy_to_mp(x: u32, y: u32) -> [String; 4] {
     ]
 }
 
+/// Convert x & y to a TileStash (ts) safe directory parts
+fn xy_to_ts(x: u32, y: u32) -> [String; 4] {
+    [
+        format!("{:03}", x/1_000),
+        format!("{:03}", x % 1_000),
+        format!("{:03}", y/1_000),
+        format!("{:03}", y % 1_000),
+    ]
+}
+
 /// How many times are in this soom level? Returns None if there would be a usize overflow
 fn num_tiles_in_zoom(zoom: u8) -> Option<usize> {
     // From experience it looks like you can't calc above zoom >= 6
@@ -545,6 +562,17 @@ mod test {
         assert_eq!(res[1], "0003");
         assert_eq!(res[2], "0000");
         assert_eq!(res[3], "0004");
+    }
+
+    #[test]
+    fn ts() {
+        use super::xy_to_ts;
+
+        let res = xy_to_ts(656, 1582);
+        assert_eq!(res[0], "000");
+        assert_eq!(res[1], "656");
+        assert_eq!(res[2], "001");
+        assert_eq!(res[3], "582");
     }
 
     #[test]
@@ -593,6 +621,7 @@ mod test {
 
         assert_eq!(parent.tc_path("png"), "0/000/000/000/000/000/000.png");
         assert_eq!(parent.mp_path("png"), "0/0000/0000/0000/0000.png");
+        assert_eq!(parent.ts_path("png"), "0/000/000/000/000.png");
 
         let children = parent.subtiles();
         assert_eq!(children.is_none(), false);
