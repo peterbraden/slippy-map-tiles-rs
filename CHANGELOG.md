@@ -1,3 +1,13 @@
+<a name="v0.7.0"></a>
+## v0.7.0 (2016-06-14)
+
+
+#### Features
+
+*   Change licence to GNU GPL v3 (or later)
+
+
+
 <a name="v0.6.0"></a>
 ## v0.6.0 (2016-03-18)
 
