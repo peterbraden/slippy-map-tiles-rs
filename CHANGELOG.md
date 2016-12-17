@@ -1,3 +1,14 @@
+<a name="v0.9.0"></a>
+## v0.9.0 (2016-12-17)
+
+
+#### Features
+
+*   Iterate on all child tiles ([b2ce8759](b2ce8759))
+*   Tiles can be hashed. Can use as keys in Hashmap ([3ad16113](3ad16113))
+
+
+
 <a name="v0.8.0"></a>
 ## v0.8.0 (2016-09-28)
 
