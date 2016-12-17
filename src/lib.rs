@@ -4,7 +4,7 @@ extern crate regex;
 use regex::Regex;
 
 /// A single tile.
-#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy, Hash)]
 pub struct Tile {
     zoom: u8,
     x: u32,
