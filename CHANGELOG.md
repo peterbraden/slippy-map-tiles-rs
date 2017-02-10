@@ -1,3 +1,17 @@
+<a name="v0.10.0"></a>
+## v0.10.0 (2017-02-10)
+
+
+#### Bug Fixes
+
+*   Set LatLon costructor public ([23553c53](23553c53))
+
+#### Features
+
+*   Support simple Z/X/Y paths ([d20635a0](d20635a0))
+
+
+
 <a name="v0.9.0"></a>
 ## v0.9.0 (2016-12-17)
 
