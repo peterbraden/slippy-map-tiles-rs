@@ -1,3 +1,17 @@
+//! Abstractions and functions for working with OpenStreetMap (etc.) tiles
+//!
+//! # Examples
+//! ```
+//! use slippy_map_tiles::Tile;
+//!
+//! let t = Tile::new(6, 35, 23).unwrap();
+//!
+//! ```
+//!
+//! You cannot create invalid tiles
+//! ```
+//! assert!(Tile::new(0, 3, 3).is_none);
+//! ```
 #[macro_use] extern crate lazy_static;
 extern crate regex;
 
@@ -12,8 +26,14 @@ pub struct Tile {
 }
 
 impl Tile {
-    /// Constucts a Tile with the following zoom, x and y values. Returns None if the x/y are
-    /// invalid for that zoom level, or if the zoom is >= 100.
+    /// Constucts a Tile with the following zoom, x and y values.
+    ///
+    /// Returns None if the x/y are invalid for that zoom level, or if the zoom is >= 100.
+    /// # Examples
+    /// ```
+    /// # use slippy_map_tiles::Tile;
+    /// assert!(Tile::new(0, 3, 3).is_none());
+    /// ```
     pub fn new(zoom: u8, x: u32, y: u32) -> Option<Tile> {
         if zoom >= 100 {
             None
@@ -24,22 +44,24 @@ impl Tile {
         }
     }
 
-    /// Return the zoom of this tile
+    /// zoom of this tile
     pub fn zoom(&self) -> u8 { self.zoom }
 
-    /// Return the X of this tile
+    /// X value of this tile
     pub fn x(&self) -> u32 { self.x }
 
-    /// Return the Y of this tile
+    /// Y value of tile
     pub fn y(&self) -> u32 { self.y }
 
     /// Constucts a Tile with the following zoom, x and y values based on a TMS URL.
     /// Returns None if the TMS url is invalid, or those
+    ///
     /// # Examples
     /// ```
-    /// use slippy_map_tiles::Tile;
+    /// # use slippy_map_tiles::Tile;
     /// let t = Tile::from_tms("/10/547/380.png");
-    /// assert_eq!(t, Tile::new(10, 547, 380))
+    /// assert_eq!(t, Tile::new(10, 547, 380));
+    /// assert_eq!(Tile::from_tms("foobar"), None);
     /// ```
     pub fn from_tms(tms: &str) -> Option<Tile> {
         lazy_static! {
@@ -78,8 +100,19 @@ impl Tile {
     // TODO Add from_tc to parse the directory hiearchy so we can turn a filename in to a tile.
     // TODO Add from_ts to parse the directory hiearchy so we can turn a filename in to a tile.
 
-    /// Returns the parent tile for this tile, i.e. the tile at the zoom-1 that this tile is
-    /// inside. None if there is no parent, which is at zoom 0.
+    /// Returns the parent tile for this tile, i.e. the tile at the `zoom-1` that this tile is
+    /// inside.
+    ///
+    /// ```
+    /// # use slippy_map_tiles::Tile;
+    /// assert_eq!(Tile::new(1, 0, 0).unwrap().parent(), Tile::new(0, 0, 0));
+    /// ```
+    /// None if there is no parent, which is at zoom 0.
+    ///
+    /// ```
+    /// # use slippy_map_tiles::Tile;
+    /// assert_eq!(Tile::new(0, 0, 0).unwrap().parent(), None);
+    /// ```
     pub fn parent(&self) -> Option<Tile> {
         match self.zoom {
             0 => {
@@ -95,6 +128,16 @@ impl Tile {
     /// Returns the subtiles (child) tiles for this tile. The 4 tiles at zoom+1 which cover this
     /// tile. Returns None if this is at the maximum permissable zoom level, and hence there are no
     /// subtiles.
+    ///
+    /// ```
+    /// # use slippy_map_tiles::Tile;
+    /// let t = Tile::new(0, 0, 0).unwrap();
+    /// let subtiles: [Tile; 4] = t.subtiles().unwrap();
+    /// assert_eq!(subtiles[0], Tile::new(1, 0, 0).unwrap());
+    /// assert_eq!(subtiles[1], Tile::new(1, 1, 0).unwrap());
+    /// assert_eq!(subtiles[2], Tile::new(1, 0, 1).unwrap());
+    /// assert_eq!(subtiles[3], Tile::new(1, 1, 1).unwrap());
+    /// ```
     pub fn subtiles(&self) -> Option<[Tile; 4]> {
         match self.zoom {
             std::u8::MAX => {
@@ -180,8 +223,13 @@ impl Tile {
         format!("{}/{}/{}.{}", self.zoom, self.x, self.y, ext)
     }
 
-    /// Returns an iterator that yields all the tiles possible, starting from 0/0/0. Tiles are
+    /// Returns an iterator that yields all the tiles possible, starting from `0/0/0`. Tiles are
     /// generated in a breath first manner, with all zoom 1 tiles before zoom 2 etc.
+    ///
+    /// ```
+    /// # use slippy_map_tiles::Tile;
+    /// let mut all_tiles_iter = Tile::all();
+    /// ```
     pub fn all() -> AllTilesIterator {
         AllTilesIterator{ next_zoom: 0, next_x: 0, next_y: 0}
     }
@@ -364,6 +412,9 @@ fn tile_nw_lat_lon(zoom: u8, x: f32, y: f32) -> LatLon {
 }
 
 /// A single point in the world.
+///
+/// Since OSM uses up to 7 decimal places, this stores the lat/lon as `f32` which is enough
+/// precision of that
 #[derive(PartialEq, Debug)]
 pub struct LatLon {
     lat: f32,
@@ -381,7 +432,9 @@ impl LatLon {
         }
     }
 
+    /// Latitude
     pub fn lat(&self) -> f32 { self.lat }
+    /// Longitude
     pub fn lon(&self) -> f32 { self.lon }
 }
 
@@ -455,6 +508,11 @@ impl BBox {
     /// Given two points, return the bounding box specified by those 2 points
     pub fn new_from_points(topleft: &LatLon, bottomright: &LatLon) -> BBox {
         BBox{ top: topleft.lat, left: topleft.lon, bottom: bottomright.lat, right: bottomright.lon }
+    }
+
+    /// Construct a BBox from a tile
+    pub fn new_from_tile(tile: &Tile) -> Self {
+        tile.bbox()
     }
 
     /// Return true iff this point is in this bbox
