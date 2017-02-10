@@ -175,6 +175,11 @@ impl Tile {
         format!("{}/{}/{}/{}/{}.{}", self.zoom, ts[0], ts[1], ts[2], ts[3], ext)
     }
 
+    /// Returns the ZXY path for storing this tile.
+    pub fn zxy_path<T: std::fmt::Display>(&self, ext: T) -> String {
+        format!("{}/{}/{}.{}", self.zoom, self.x, self.y, ext)
+    }
+
     /// Returns an iterator that yields all the tiles possible, starting from 0/0/0. Tiles are
     /// generated in a breath first manner, with all zoom 1 tiles before zoom 2 etc.
     pub fn all() -> AllTilesIterator {
@@ -657,6 +662,7 @@ mod test {
         assert_eq!(parent.tc_path("png"), "0/000/000/000/000/000/000.png");
         assert_eq!(parent.mp_path("png"), "0/0000/0000/0000/0000.png");
         assert_eq!(parent.ts_path("png"), "0/000/000/000/000.png");
+        assert_eq!(parent.zxy_path("png"), "0/0/0.png");
 
         let children = parent.subtiles();
         assert_eq!(children.is_none(), false);
@@ -672,6 +678,7 @@ mod test {
 
         assert_eq!(children[3], Tile::new(1, 1, 1).unwrap());
         assert_eq!(children[3].tc_path("png"), "1/000/000/001/000/000/001.png");
+        assert_eq!(children[3].zxy_path("png"), "1/1/1.png")
         
     }
 
