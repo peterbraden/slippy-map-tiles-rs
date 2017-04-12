@@ -1,3 +1,13 @@
+<a name="v0.11.0"></a>
+## v0.11.0 (2017-04-12)
+
+
+#### Features
+
+*   Tiles are generated in Z order now ([05521c61](05521c61))
+
+
+
 <a name="v0.10.0"></a>
 ## v0.10.0 (2017-02-10)
 
