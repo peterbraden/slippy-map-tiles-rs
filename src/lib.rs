@@ -415,7 +415,7 @@ fn tile_nw_lat_lon(zoom: u8, x: f32, y: f32) -> LatLon {
 ///
 /// Since OSM uses up to 7 decimal places, this stores the lat/lon as `f32` which is enough
 /// precision of that
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct LatLon {
     lat: f32,
     lon: f32,
