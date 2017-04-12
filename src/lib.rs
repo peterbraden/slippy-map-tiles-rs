@@ -231,7 +231,7 @@ impl Tile {
     /// let mut all_tiles_iter = Tile::all();
     /// ```
     pub fn all() -> AllTilesIterator {
-        AllTilesIterator{ next_zoom: 0, next_x: 0, next_y: 0}
+        AllTilesIterator{ next_zoom: 0, next_zorder: 0 }
     }
 
     /// Returns an iterator that yields all the tiles from zoom 0 down to, and including, all the
@@ -254,25 +254,25 @@ impl Tile {
 /// Iterates over all the tiles in the world.
 pub struct AllTilesIterator {
     next_zoom: u8,
-    next_x: u32,
-    next_y: u32,
+    next_zorder: u64,
 }
 
 impl Iterator for AllTilesIterator {
     type Item = Tile;
 
     fn next(&mut self) -> Option<Tile> {
-        let tile = Tile::new(self.next_zoom, self.next_x, self.next_y);
-        let max_tile_no = 2u32.pow(self.next_zoom as u32) - 1;
-        if self.next_y < max_tile_no {
-            self.next_y += 1;
-        } else if self.next_x < max_tile_no {
-            self.next_x += 1;
-            self.next_y = 0;
-        } else  if self.next_zoom < std::u8::MAX {
-            self.next_zoom += 1;
-            self.next_x = 0;
-            self.next_y = 0;
+        //println!("Getting tile zoom {} zorder {}", self.next_zoom, self.next_zorder);
+        let zoom =  self.next_zoom;
+        let (x, y) = zorder_to_xy(self.next_zorder);
+        let tile = Tile::new(zoom, x, y);
+
+        let max_tile_no = 2u32.pow(zoom as u32) - 1;
+        if x == max_tile_no && y == max_tile_no {
+            // we're at the end
+            self.next_zoom = zoom + 1;
+            self.next_zorder = 0;
+        } else {
+            self.next_zorder += 1;
         }
 
         tile
@@ -634,6 +634,43 @@ fn num_tiles_in_zoom(zoom: u8) -> Option<usize> {
     }
 }
 
+pub fn xy_to_zorder(x: u32, y: u32) -> u64 {
+    let mut res: u64 = 0;
+    for i in 0..32 {
+        let x_set: bool = (x >> i) & 1 == 1;
+        let y_set: bool = (y >> i) & 1 == 1;
+        if x_set  {
+            res |= 1 << i*2;
+        }
+        if y_set {
+            res |= 1 << (i*2)+1;
+        }
+
+    }
+
+    res
+}
+
+pub fn zorder_to_xy(zorder: u64) -> (u32, u32) {
+    let mut x: u32 = 0;
+    let mut y: u32 = 0;
+
+    for i in 0..32 {
+        let x_bit_set = (zorder >> i*2) & 1 == 1;
+        let y_bit_set = (zorder >> (i*2)+1) & 1 == 1;
+
+        if x_bit_set {
+            x |= 1 << i;
+        }
+        if y_bit_set {
+            y |= 1 << i;
+        }
+    }
+
+    (x, y)
+}
+
+
 // TODO do mod_tile tile format
 
 mod test {
@@ -785,14 +822,14 @@ mod test {
 
         assert_eq!(it.next(), Tile::new(0, 0, 0));
         assert_eq!(it.next(), Tile::new(1, 0, 0));
-        assert_eq!(it.next(), Tile::new(1, 0, 1));
         assert_eq!(it.next(), Tile::new(1, 1, 0));
+        assert_eq!(it.next(), Tile::new(1, 0, 1));
         assert_eq!(it.next(), Tile::new(1, 1, 1));
         assert_eq!(it.next(), Tile::new(2, 0, 0));
-        assert_eq!(it.next(), Tile::new(2, 0, 1));
-        assert_eq!(it.next(), Tile::new(2, 0, 2));
-        assert_eq!(it.next(), Tile::new(2, 0, 3));
         assert_eq!(it.next(), Tile::new(2, 1, 0));
+        assert_eq!(it.next(), Tile::new(2, 0, 1));
+        assert_eq!(it.next(), Tile::new(2, 1, 1));
+        assert_eq!(it.next(), Tile::new(2, 2, 0));
 
         let it = Tile::all();
         let z5_tiles: Vec<Tile> = it.skip_while(|t| { t.zoom < 5 }).take(1).collect();
@@ -1031,4 +1068,22 @@ mod test {
         assert_eq!(z10tiles[z10tiles.len()-1].zoom(), 10);
         
     }
+
+    #[test]
+    fn test_xy_to_zorder() {
+        use super::xy_to_zorder;
+        assert_eq!(xy_to_zorder(0, 0), 0);
+        assert_eq!(xy_to_zorder(1, 0), 1);
+        assert_eq!(xy_to_zorder(0, 1), 2);
+        assert_eq!(xy_to_zorder(1, 1), 3);
+    }
+
+    #[test]
+    fn test_zorder_to_xy() {
+        use super::zorder_to_xy;
+        assert_eq!(zorder_to_xy(0), (0, 0));
+        assert_eq!(zorder_to_xy(1), (1, 0));
+    }
+
+
 }
