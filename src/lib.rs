@@ -441,6 +441,16 @@ impl LatLon {
     pub fn lat(&self) -> f32 { self.lat }
     /// Longitude
     pub fn lon(&self) -> f32 { self.lon }
+
+    pub fn to_3857(&self) -> (f32, f32) {
+        let x = self.lon() * 20037508.34 / 180.;
+        let pi = std::f32::consts::PI;
+        let y = ((90. + self.lat()) * pi / 360.).tan().ln() / (pi / 180.);
+        //var y = Math.log(Math.tan((90 + lat) * Math.PI / 360)) / (Math.PI / 180);
+        let y = y * 20037508.34 / 180.;
+        
+        (x, y)
+    }
 }
 
 /// A Bounding box
@@ -851,6 +861,8 @@ mod test {
         let p1 = LatLon::new(54.9, 5.5).unwrap();
         assert_eq!(p1.lat(), 54.9);
         assert_eq!(p1.lon(), 5.5);
+
+        assert_eq!(p1.to_3857(), (612257.20, 7342480.5));
     }
 
     #[test]
