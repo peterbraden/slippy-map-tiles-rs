@@ -254,8 +254,8 @@ impl Tile {
         BBox::new_from_points(&nw, &se)
     }
 
-    pub fn metatile(&self) -> Metatile {
-        Metatile::new(self.zoom(), self.x(), self.y()).unwrap()
+    pub fn metatile(&self, scale: u8) -> Option<Metatile> {
+        Metatile::new(scale, self.zoom(), self.x(), self.y())
     }
 
 }
@@ -410,36 +410,43 @@ impl Iterator for AllSubTilesIterator {
 /// Metatiles are 8x8 tiles
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Hash)]
 pub struct Metatile {
+    scale: u8,
     zoom: u8,
     x: u32,
     y: u32,
 }
 
 impl Metatile {
-    pub fn new(zoom: u8, x: u32, y: u32) -> Option<Self> {
+    pub fn new(scale: u8, zoom: u8, x: u32, y: u32) -> Option<Self> {
+        if ! scale.is_power_of_two() {
+            return None;
+        }
         if zoom >= 100 {
             None
         } else if x < 2u32.pow(zoom as u32) && y < 2u32.pow(zoom as u32) {
-            let x = (x / 8) * 8;
-            let y = (y / 8) * 8;
-            Some(Metatile { zoom: zoom, x: x, y: y })
+            let s = scale as u32;
+            let x = (x / s) * s;
+            let y = (y / s) * s;
+            Some(Metatile { scale: scale, zoom: zoom, x: x, y: y })
         } else {
             None
         }
     }
 
     pub fn scale(&self) -> u8 {
-        8
+        self.scale
     }
 
-    pub fn all() -> AllMetatilesIterator {
-        AllMetatilesIterator{ next_zoom: 0, next_zorder: 0 }
+    pub fn all(scale: u8) -> AllMetatilesIterator {
+        assert!(scale.is_power_of_two());
+        AllMetatilesIterator{ scale: scale, next_zoom: 2, next_zorder: 0 }
     }
 }
 
 
 /// Iterates over all the metatiles in the world.
 pub struct AllMetatilesIterator {
+    scale: u8,
     next_zoom: u8,
     next_zorder: u64,
 }
@@ -450,9 +457,9 @@ impl Iterator for AllMetatilesIterator {
     fn next(&mut self) -> Option<Self::Item> {
         let zoom =  self.next_zoom;
         let (x, y) = zorder_to_xy(self.next_zorder);
-        let metatile = Metatile::new(zoom, x*8, y*8);
+        let metatile = Metatile::new(self.scale, zoom, x*8, y*8);
 
-        let max_tile_no = (2u32.pow(zoom as u32) - 1) / 8;
+        let max_tile_no = (2u32.pow(zoom as u32) - 1) / (self.scale as u32);
         if x == max_tile_no && y == max_tile_no {
             // we're at the end
             self.next_zoom = zoom + 1;
@@ -1168,14 +1175,15 @@ mod test {
     fn test_metatile() {
         use super::*;
 
-        let mt = Metatile::new(0, 0, 0);
+        let mt = Metatile::new(8, 0, 0, 0);
         assert!(mt.is_some());
         let mt = mt.unwrap();
+        assert_eq!(mt.scale(), 8);
         assert_eq!(mt.zoom, 0);
         assert_eq!(mt.x, 0);
         assert_eq!(mt.y, 0);
 
-        let mt = Metatile::new(3, 3, 2);
+        let mt = Metatile::new(8, 3, 3, 2);
         assert!(mt.is_some());
         let mt = mt.unwrap();
         assert_eq!(mt.zoom, 3);
@@ -1183,7 +1191,7 @@ mod test {
         assert_eq!(mt.y, 0);
 
         let t = Tile::new(3, 3, 2).unwrap();
-        assert_eq!(t.metatile(), mt);
+        assert_eq!(t.metatile(8), Some(mt));
 
 
 
@@ -1193,22 +1201,22 @@ mod test {
     fn test_metatile_all() {
         use super::*;
 
-        let mut it = Metatile::all();
+        let mut it = Metatile::all(8);
 
-        assert_eq!(it.next(), Metatile::new(0, 0, 0));
-        assert_eq!(it.next(), Metatile::new(1, 0, 0));
-        assert_eq!(it.next(), Metatile::new(2, 0, 0));
-        assert_eq!(it.next(), Metatile::new(3, 0, 0));
-        assert_eq!(it.next(), Metatile::new(4, 0, 0));
-        assert_eq!(it.next(), Metatile::new(4, 8, 0));
-        assert_eq!(it.next(), Metatile::new(4, 0, 8));
-        assert_eq!(it.next(), Metatile::new(4, 8, 8));
-        assert_eq!(it.next(), Metatile::new(5, 0, 0));
+        assert_eq!(it.next(), Metatile::new(8, 0, 0, 0));
+        assert_eq!(it.next(), Metatile::new(8, 1, 0, 0));
+        assert_eq!(it.next(), Metatile::new(8, 2, 0, 0));
+        assert_eq!(it.next(), Metatile::new(8, 3, 0, 0));
+        assert_eq!(it.next(), Metatile::new(8, 4, 0, 0));
+        assert_eq!(it.next(), Metatile::new(8, 4, 8, 0));
+        assert_eq!(it.next(), Metatile::new(8, 4, 0, 8));
+        assert_eq!(it.next(), Metatile::new(8, 4, 8, 8));
+        assert_eq!(it.next(), Metatile::new(8, 5, 0, 0));
 
-        let it = Metatile::all();
+        let it = Metatile::all(8);
         let tiles: Vec<Metatile> = it.take_while(|mt| mt.zoom < 11).filter(|mt| mt.zoom == 10).collect();
         assert_eq!(tiles.len(), 16384);
-        assert_eq!(tiles[1], Metatile::new(10, 8, 0).unwrap());
+        assert_eq!(tiles[1], Metatile::new(8, 10, 8, 0).unwrap());
     }
 
 
