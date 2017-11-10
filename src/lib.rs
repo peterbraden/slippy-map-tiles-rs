@@ -944,12 +944,12 @@ pub fn zorder_to_xy(zorder: u64) -> (u32, u32) {
 
 // TODO do mod_tile tile format
 
+#[cfg(test)]
 mod test {
+    use super::*;
 
     #[test]
     fn tc() {
-        use super::xy_to_tc;
-
         let res = xy_to_tc(3, 4);
         assert_eq!(res[0], "000");
         assert_eq!(res[1], "000");
@@ -961,8 +961,6 @@ mod test {
 
     #[test]
     fn mp() {
-        use super::xy_to_mp;
-
         let res = xy_to_mp(3, 4);
         assert_eq!(res[0], "0000");
         assert_eq!(res[1], "0003");
@@ -972,8 +970,6 @@ mod test {
 
     #[test]
     fn ts() {
-        use super::xy_to_ts;
-
         let res = xy_to_ts(656, 1582);
         assert_eq!(res[0], "000");
         assert_eq!(res[1], "656");
@@ -983,8 +979,6 @@ mod test {
 
     #[test]
     fn tiles_parsing() {
-        use super::Tile;
-
         let tile = Tile::new(1, 5, 5);
         assert!(tile.is_none());
 
@@ -998,7 +992,6 @@ mod test {
 
     #[test]
     fn tiles() {
-        use super::{Tile, LatLon};
         let tile = Tile::new(1, 0, 0);
 
         assert!(tile.is_some());
@@ -1052,8 +1045,6 @@ mod test {
 
     #[test]
     fn tile_from_tms() {
-        use super::Tile;
-
         fn known_good(tms: &str, zoom: u8, x: u32, y: u32) {
             let tile = Tile::from_tms(tms);
             assert!(tile.is_some());
@@ -1089,7 +1080,6 @@ mod test {
 
     #[test]
     fn all_tiles() {
-        use super::Tile;
 
         let mut it = Tile::all();
 
@@ -1112,7 +1102,6 @@ mod test {
 
     #[test]
     fn latlon_create() {
-        use super::LatLon;
 
         let p1 = LatLon::new(54.9, 5.5).unwrap();
         assert_eq!(p1.lat(), 54.9);
@@ -1123,7 +1112,6 @@ mod test {
 
     #[test]
     fn bbox_create() {
-        use super::{BBox, LatLon};
 
         // left=5.53 bottom=47.23 right=15.38 top=54.96
         let b1: Option<BBox> = BBox::new(54.9, 5.5, 47.2, 15.38);
@@ -1139,7 +1127,6 @@ mod test {
 
     #[test]
     fn bbox_from_string() {
-        use super::BBox;
 
         let bbox = BBox::new_from_string("10 20 30 40");
         assert!(bbox.is_some());
@@ -1175,14 +1162,12 @@ mod test {
 
     #[test]
     fn bbox_tile() {
-        use super::{BBox, Tile};
         let t = Tile::new(0, 0, 0).unwrap();
         assert_eq!(t.bbox(), BBox::new(85.05112, -180., -85.05112, 180.).unwrap());
     }
 
     #[test]
     fn bbox_contains_point(){
-        use super::{Tile, LatLon};
         // triangle from London, to Bristol to Birmingham
         let tile = Tile::new(7, 63, 42).unwrap();
         let bbox = tile.bbox();
@@ -1208,7 +1193,6 @@ mod test {
 
     #[test]
     fn bbox_overlaps() {
-        use super::Tile;
 
         let tile = Tile::new(7, 63, 42).unwrap();
         let parent_tile = tile.parent().unwrap();
@@ -1221,7 +1205,6 @@ mod test {
 
     #[test]
     fn bbox_tile_iter() {
-        use super::{BBox, Tile};
 
         // left=-11.32 bottom=51.11 right=-4.97 top=55.7
         let ie_bbox = BBox::new(55.7, -11.32, 51.11, -4.97).unwrap();
@@ -1240,7 +1223,6 @@ mod test {
 
     #[test]
     fn test_num_tiles_in_zoom() {
-        use super::num_tiles_in_zoom;
 
         assert_eq!(num_tiles_in_zoom(0), Some(1));
         assert_eq!(num_tiles_in_zoom(1), Some(4));
@@ -1259,7 +1241,6 @@ mod test {
 
     #[test]
     fn test_remaining_in_zoom() {
-        use super::remaining_in_this_zoom;
 
         assert_eq!(remaining_in_this_zoom(0, 0, 0), Some(1));
 
@@ -1273,7 +1254,6 @@ mod test {
 
     #[test]
     fn all_tiles_to_zoom_iter() {
-        use super::Tile;
 
         let mut it = Tile::all_to_zoom(1);
 
@@ -1330,7 +1310,6 @@ mod test {
 
     #[test]
     fn all_sub_tiles_iter() {
-        use super::Tile;
         let mut it = Tile::new(4, 7, 5).unwrap().all_subtiles_iter();
         assert_eq!(it.next(), Tile::new(5, 14, 10));
         assert_eq!(it.next(), Tile::new(5, 15, 10));
@@ -1346,7 +1325,6 @@ mod test {
 
     #[test]
     fn test_xy_to_zorder() {
-        use super::xy_to_zorder;
         assert_eq!(xy_to_zorder(0, 0), 0);
         assert_eq!(xy_to_zorder(1, 0), 1);
         assert_eq!(xy_to_zorder(0, 1), 2);
@@ -1355,14 +1333,12 @@ mod test {
 
     #[test]
     fn test_zorder_to_xy() {
-        use super::zorder_to_xy;
         assert_eq!(zorder_to_xy(0), (0, 0));
         assert_eq!(zorder_to_xy(1), (1, 0));
     }
 
     #[test]
     fn test_metatile() {
-        use super::*;
 
         let mt = Metatile::new(8, 0, 0, 0);
         assert!(mt.is_some());
@@ -1386,7 +1362,6 @@ mod test {
 
     #[test]
     fn test_metatile_all() {
-        use super::*;
 
         let mut it = Metatile::all(8);
 
@@ -1408,7 +1383,6 @@ mod test {
 
     #[test]
     fn test_metatile_bbox() {
-        use super::*;
 
         assert_eq!(Metatile::new(8, 0, 0, 0).unwrap().size(), 1);
         assert_eq!(Metatile::new(8, 1, 0, 0).unwrap().size(), 2);
@@ -1429,7 +1403,6 @@ mod test {
 
     #[test]
     fn test_metatile_subtiles() {
-        use super::*;
 
         assert_eq!(Metatile::new(8, 0, 0, 0).unwrap().tiles(), vec![(0, 0, 0)].into_iter().map(|c| Tile::new(c.0, c.1, c.2).unwrap()).collect::<Vec<Tile>>());
         assert_eq!(Metatile::new(8, 1, 0, 0).unwrap().tiles(), vec![(1, 0, 0), (1, 0, 1), (1, 1, 0), (1, 1, 1)].into_iter().map(|c| Tile::new(c.0, c.1, c.2).unwrap()).collect::<Vec<Tile>>());
@@ -1445,7 +1418,6 @@ mod test {
 
     #[test]
     fn test_metatile_subtiles_bbox1() {
-        use super::*;
 
         // left=-11.32 bottom=51.11 right=-4.97 top=55.7
         let ie_bbox = BBox::new(55.7, -11.32, 51.11, -4.97).unwrap();
@@ -1478,7 +1450,6 @@ mod test {
 
     #[test]
     fn test_metatile_subtiles_bbox2() {
-        use super::*;
 
         let ie_bbox = BBox::new(55.7, -11.32, 51.11, -4.97).unwrap();
         let mut metatiles = MetatilesIterator::new_for_bbox_zoom(8, &ie_bbox, 0, 5);
@@ -1500,7 +1471,6 @@ mod test {
 
     #[test]
     fn test_metatile_subtiles_bbox3() {
-        use super::*;
 
         let ie_bbox = BBox::new(55.7, -11.32, 51.11, -4.97).unwrap();
         let mut metatiles = MetatilesIterator::new_for_bbox_zoom(8, &ie_bbox, 5, 5);
@@ -1511,7 +1481,6 @@ mod test {
     
     #[test]
     fn test_lat_lon_to_tile() {
-        use super::*;
 
         assert_eq!(lat_lon_to_tile(51.50101, -0.12418, 18), (130981, 87177));
         assert_eq!(lat_lon_to_tile(51.50101, -0.12418, 17), (65490, 43588));
@@ -1530,6 +1499,10 @@ mod test {
         assert_eq!(lat_lon_to_tile(51.50101, -0.12418, 3), (3, 2));
         assert_eq!(lat_lon_to_tile(51.50101, -0.12418, 2), (1, 1));
         assert_eq!(lat_lon_to_tile(51.50101, -0.12418, 0), (0, 0));
+    }
+
+    #[test]
+    fn test_mod_tile_metatile() {
     }
 
 }
