@@ -433,42 +433,215 @@ impl Metatile {
         }
     }
 
-    pub fn scale(&self) -> u8 {
-        self.scale
+    pub fn scale(&self) -> u8 { self.scale }
+
+    pub fn zoom(&self) -> u8 { self.zoom }
+
+    /// What is the width or height of this metatile. For small zoom numbers (e.g. z1), there will
+    /// not be the full `scale` tiles across.
+    pub fn size(&self) -> u8 {
+        let num_tiles_in_zoom = 2u32.pow(self.zoom as u32);
+        if num_tiles_in_zoom < (self.scale as u32) {
+            num_tiles_in_zoom as u8
+        } else {
+            self.scale
+        }
     }
 
-    pub fn all(scale: u8) -> AllMetatilesIterator {
+    /// Returns the LatLon for the centre of this metatile.
+    pub fn centre_point(&self) -> LatLon {
+        tile_nw_lat_lon(self.zoom, (self.x as f32)+(self.size() as f32)/2., (self.y as f32)+(self.size() as f32)/2.)
+    }
+
+    /// Returns the LatLon for the centre of this metatile.
+    pub fn center_point(&self) -> LatLon {
+        self.centre_point()
+    }
+
+    /// Returns the LatLon of the top left, i.e. north west corner, of this metatile.
+    pub fn nw_corner(&self) -> LatLon {
+        tile_nw_lat_lon(self.zoom, (self.x as f32), (self.y as f32))
+    }
+
+    /// Returns the LatLon of the top right, i.e. north east corner, of this metatile.
+    pub fn ne_corner(&self) -> LatLon {
+        tile_nw_lat_lon(self.zoom, (self.x+self.size() as u32) as f32, (self.y as f32))
+    }
+
+    /// Returns the LatLon of the bottom left, i.e. south west corner, of this metatile.
+    pub fn sw_corner(&self) -> LatLon {
+        tile_nw_lat_lon(self.zoom, (self.x as f32), (self.y+self.size() as u32) as f32)
+    }
+
+    /// Returns the LatLon of the bottom right, i.e. south east corner, of this metatile.
+    pub fn se_corner(&self) -> LatLon {
+        tile_nw_lat_lon(self.zoom, (self.x+self.size() as u32) as f32, (self.y+self.size() as u32) as f32)
+    }
+
+    /// X value of this metatile
+    pub fn x(&self) -> u32 { self.x }
+
+    /// Y value of metatile
+    pub fn y(&self) -> u32 { self.y }
+
+    pub fn tiles(&self) -> Vec<Tile> {
+        let size = self.size() as u32;
+        (0..(size*size)).map(|n| {
+            // oh for a divmod
+            let (i, j) = (n / size, n % size);
+            // being cheeky and skipping the usuall Tile::new checks here, since we know it's valid
+            Tile{ zoom: self.zoom, x: self.x+i, y: self.y+j }
+        }).collect()
+    }
+
+    pub fn all(scale: u8) -> MetatilesIterator {
         assert!(scale.is_power_of_two());
-        AllMetatilesIterator{ scale: scale, next_zoom: 2, next_zorder: 0 }
+        MetatilesIterator::all(scale)
     }
 }
 
 
 /// Iterates over all the metatiles in the world.
-pub struct AllMetatilesIterator {
+#[derive(Debug)]
+pub struct MetatilesIterator {
     scale: u8,
-    next_zoom: u8,
-    next_zorder: u64,
+    curr_zoom: u8,
+    maxzoom: u8,
+    curr_zorder: u64,
+    bbox: Option<BBox>,
+    curr_zoom_width_height: Option<(u32, u32)>,
+    curr_zoom_start_xy: Option<(u32, u32)>,
 }
 
-impl Iterator for AllMetatilesIterator {
+impl MetatilesIterator {
+    pub fn all(scale: u8) -> Self {
+        MetatilesIterator{ scale: scale, curr_zoom: 0, curr_zorder: 0, bbox: None, maxzoom: 32, curr_zoom_width_height: None, curr_zoom_start_xy: None }
+    }
+    
+    pub fn new_for_bbox(scale: u8, bbox: &BBox) -> Self {
+        MetatilesIterator::new_for_bbox_zoom(scale, bbox, 0, 32)
+    }
+
+    pub fn new_for_bbox_zoom(scale: u8, bbox: &BBox, minzoom: u8, maxzoom: u8) -> Self {
+        let mut it = MetatilesIterator{ scale: scale, curr_zoom: minzoom, curr_zorder: 0, bbox: Some(bbox.clone()), maxzoom: maxzoom, curr_zoom_width_height: None, curr_zoom_start_xy: None };
+        it.set_zoom_width_height();
+        it.set_zoom_start_xy();
+
+        it
+    }
+
+    fn set_zoom_width_height(&mut self) {
+        if let Some(ref bbox) = self.bbox {
+            let zoom = self.curr_zoom;
+            // TODO is this x/y lat/lon the right way around?
+            let (x1, y1) = lat_lon_to_tile(bbox.top, bbox.left, zoom);
+            let (x2, y2) = lat_lon_to_tile(bbox.bottom, bbox.right, zoom);
+
+            let width = x2 - x1;
+            let height = y2 - y1;
+
+            self.curr_zoom_width_height = Some((width, height));
+        }
+    }
+
+    fn set_zoom_start_xy(&mut self) {
+        if self.bbox.is_none() {
+            return;
+        }
+
+        let top = match self.bbox {
+            None => 90.,
+            Some(ref b) => b.top,
+        };
+        let left = match self.bbox {
+            None => -180.,
+            Some(ref b) => b.left,
+        };
+        // TODO is this x/y lat/lon the right way around?
+        let (x1, y1) = lat_lon_to_tile(top, left, self.curr_zoom);
+        self.curr_zoom_start_xy = Some((x1/self.scale as u32, y1/self.scale as u32));
+    }
+}
+
+impl Iterator for MetatilesIterator {
     type Item = Metatile;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let zoom =  self.next_zoom;
-        let (x, y) = zorder_to_xy(self.next_zorder);
-        let metatile = Metatile::new(self.scale, zoom, x*8, y*8);
+        //println!("\n\nStart of iterator");
 
-        let max_tile_no = (2u32.pow(zoom as u32) - 1) / (self.scale as u32);
-        if x == max_tile_no && y == max_tile_no {
-            // we're at the end
-            self.next_zoom = zoom + 1;
-            self.next_zorder = 0;
-        } else {
-            self.next_zorder += 1;
+        // have to set a value, but we're never going to read it
+        #[allow(unused_assignments)]
+        let mut zoom = 0;
+        #[allow(unused_assignments)]
+        let mut x = 0;
+        #[allow(unused_assignments)]
+        let mut y = 0;
+
+        let scale = self.scale as u32;
+
+        loop {
+
+            if self.curr_zoom > self.maxzoom {
+                // We're finished
+                return None;
+            }
+
+            //println!("loop start curr_zoom {} curr_zorder {} curr_zoom_start_xy {:?} curr_zoom_width_height {:?}", self.curr_zoom, self.curr_zorder, self.curr_zoom_start_xy, self.curr_zoom_width_height);
+
+            zoom =  self.curr_zoom;
+
+            let (i, j) = zorder_to_xy(self.curr_zorder);
+            let bits = match self.curr_zoom_start_xy {
+                None => (i, j),
+                Some(start) => (start.0+i, start.1+j),
+            };
+            x = bits.0;
+            y = bits.1;
+
+            let (width, height) = match self.curr_zoom_width_height {
+                None => { let max = (2u32.pow(zoom as u32) - 1) / scale; (max, max) },
+                Some((width, height)) => (width, height),
+            };
+
+            //println!("in loop ij {} {} xy {} {} width,height {} {}", i, j, x, y, width, height);
+
+            if i >= width && j >= height {
+                //println!("At the end");
+                // we're at the end
+                self.curr_zoom = zoom + 1;
+                self.curr_zorder = 0;
+                self.set_zoom_start_xy();
+                self.set_zoom_width_height();
+
+                if i == width && j == width {
+                    // When the bbox fits exactly, then just return this tile
+                    // The xy from earlier is used
+                    break;
+                } else {
+                    // We have gone outside the bbox, so the next tile is in the next zoom level
+                    continue;
+                }
+            } else if i > width || j > height {
+                //println!("gone outside range");
+                // If the bbox is non-square, there will be X (or Y) tiles which are outside the
+                // bbox. Rather than go to the next zoom level, we want to contine to look at the
+                // next tile in order, and keep going until we get a tile that's inside the bbox.
+                // The order is important here, if x >= maxx && y >= maxy, then we're at the end
+                // and need to go to the next zoom, but in this case, we stay on this zoom and go
+                // to the next tile
+                self.curr_zorder += 1;
+                continue;
+            } else {
+                //println!("OK tile, next time stay on this zoom");
+                self.curr_zorder += 1;
+                break;
+            }
+
         }
 
-        metatile
+        let (x, y) = (x*scale, y*scale);
+        //println!("returning {} {} {}", zoom, x, y);
+        Metatile::new(self.scale, zoom, x, y)
     }
 }
 
@@ -481,6 +654,16 @@ fn tile_nw_lat_lon(zoom: u8, x: f32, y: f32) -> LatLon {
     // FIXME figure out the unwrapping here....
     // Do we always know it's valid?
     LatLon::new(lat_deg, lon_deg).unwrap()
+}
+
+fn lat_lon_to_tile(lat: f32, lon: f32, zoom: u8) -> (u32, u32) {
+    let lat: f64 = lat as f64;
+    let lon: f64 = lon as f64;
+    let n: f64 = 2f64.powi(zoom as i32);
+    let xtile: u32 = (n * ((lon + 180.) / 360.)).trunc() as u32;
+    let ytile: u32 = (n * (1. - ((lat.to_radians().tan() + (1. / lat.to_radians().cos())).ln() / std::f64::consts::PI)) / 2.).trunc() as u32;
+
+    (xtile, ytile)
 }
 
 /// A single point in the world.
@@ -521,7 +704,7 @@ impl LatLon {
 }
 
 /// A Bounding box
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct BBox {
     top: f32,
     left: f32,
@@ -612,6 +795,12 @@ impl BBox {
     /// Iterate over all the tiles from z0 onwards that this bbox is in
     pub fn tiles(&self) -> BBoxTilesIterator {
         BBoxTilesIterator::new(&self)
+    }
+
+    /// Iterate over all the metatiles from z0 onwards that this bbox is in
+    pub fn metatiles(&self, scale: u8) -> MetatilesIterator {
+        let bbox: BBox = (*self).clone();
+        MetatilesIterator{ curr_zoom: 0, maxzoom: 32, bbox: Some(bbox), curr_zorder: 0, scale: scale, curr_zoom_width_height: None, curr_zoom_start_xy: None }
     }
 
     /// Return the top value of this bbox
@@ -1193,8 +1382,6 @@ mod test {
         let t = Tile::new(3, 3, 2).unwrap();
         assert_eq!(t.metatile(8), Some(mt));
 
-
-
     }
 
     #[test]
@@ -1219,5 +1406,130 @@ mod test {
         assert_eq!(tiles[1], Metatile::new(8, 10, 8, 0).unwrap());
     }
 
+    #[test]
+    fn test_metatile_bbox() {
+        use super::*;
+
+        assert_eq!(Metatile::new(8, 0, 0, 0).unwrap().size(), 1);
+        assert_eq!(Metatile::new(8, 1, 0, 0).unwrap().size(), 2);
+        assert_eq!(Metatile::new(8, 2, 0, 0).unwrap().size(), 4);
+        assert_eq!(Metatile::new(8, 3, 0, 0).unwrap().size(), 8);
+        assert_eq!(Metatile::new(8, 4, 0, 0).unwrap().size(), 8);
+        assert_eq!(Metatile::new(8, 5, 0, 0).unwrap().size(), 8);
+
+        let mt = Metatile::new(8, 2, 0, 0).unwrap();
+
+        assert_eq!(mt.centre_point(), LatLon::new(0f32, 0f32).unwrap());
+        assert_eq!(mt.nw_corner(), LatLon::new(85.05112, -180.0).unwrap());
+        assert_eq!(mt.ne_corner(), LatLon::new(85.05112, 180.0).unwrap());
+        assert_eq!(mt.sw_corner(), LatLon::new(-85.05112, -180.0).unwrap());
+        assert_eq!(mt.se_corner(), LatLon::new(-85.05112, 180.0).unwrap());
+
+    }
+
+    #[test]
+    fn test_metatile_subtiles() {
+        use super::*;
+
+        assert_eq!(Metatile::new(8, 0, 0, 0).unwrap().tiles(), vec![(0, 0, 0)].into_iter().map(|c| Tile::new(c.0, c.1, c.2).unwrap()).collect::<Vec<Tile>>());
+        assert_eq!(Metatile::new(8, 1, 0, 0).unwrap().tiles(), vec![(1, 0, 0), (1, 0, 1), (1, 1, 0), (1, 1, 1)].into_iter().map(|c| Tile::new(c.0, c.1, c.2).unwrap()).collect::<Vec<Tile>>());
+        assert_eq!(Metatile::new(8, 2, 0, 0).unwrap().tiles(), vec![
+                   (2, 0, 0), (2, 0, 1), (2, 0, 2), (2, 0, 3),
+                   (2, 1, 0), (2, 1, 1), (2, 1, 2), (2, 1, 3),
+                   (2, 2, 0), (2, 2, 1), (2, 2, 2), (2, 2, 3),
+                   (2, 3, 0), (2, 3, 1), (2, 3, 2), (2, 3, 3),
+                   ].into_iter().map(|c| Tile::new(c.0, c.1, c.2).unwrap()).collect::<Vec<Tile>>());
+
+    }
+
+
+    #[test]
+    fn test_metatile_subtiles_bbox1() {
+        use super::*;
+
+        // left=-11.32 bottom=51.11 right=-4.97 top=55.7
+        let ie_bbox = BBox::new(55.7, -11.32, 51.11, -4.97).unwrap();
+        let mut metatiles = ie_bbox.metatiles(8);
+        assert_eq!(metatiles.next(), Metatile::new(8, 0, 0, 0));
+        assert_eq!(metatiles.next(), Metatile::new(8, 1, 0, 0));
+        assert_eq!(metatiles.next(), Metatile::new(8, 2, 0, 0));
+        assert_eq!(metatiles.next(), Metatile::new(8, 3, 0, 0));
+        assert_eq!(metatiles.next(), Metatile::new(8, 4, 0, 0));
+        assert_eq!(metatiles.next(), Metatile::new(8, 5, 8, 8));
+
+        assert_eq!(metatiles.next(), Metatile::new(8, 6, 24, 16));
+        assert_eq!(metatiles.next(), Metatile::new(8, 6, 32, 16));
+        assert_eq!(metatiles.next(), Metatile::new(8, 6, 24, 24));
+        assert_eq!(metatiles.next(), Metatile::new(8, 6, 32, 24));
+        assert_eq!(metatiles.next(), Metatile::new(8, 6, 40, 16));
+
+        assert_eq!(metatiles.next(), Metatile::new(8, 7, 56, 40));
+        assert_eq!(metatiles.next(), Metatile::new(8, 7, 64, 40));
+        assert_eq!(metatiles.next(), Metatile::new(8, 7, 56, 48));
+        assert_eq!(metatiles.next(), Metatile::new(8, 7, 64, 48));
+        assert_eq!(metatiles.next(), Metatile::new(8, 7, 72, 40));
+        assert_eq!(metatiles.next(), Metatile::new(8, 7, 80, 40));
+        assert_eq!(metatiles.next(), Metatile::new(8, 7, 72, 48));
+        assert_eq!(metatiles.next(), Metatile::new(8, 7, 80, 48));
+        assert_eq!(metatiles.next(), Metatile::new(8, 7, 56, 56));
+        assert_eq!(metatiles.next(), Metatile::new(8, 7, 64, 56));
+        assert_eq!(metatiles.next(), Metatile::new(8, 7, 72, 56));
+    }
+
+    #[test]
+    fn test_metatile_subtiles_bbox2() {
+        use super::*;
+
+        let ie_bbox = BBox::new(55.7, -11.32, 51.11, -4.97).unwrap();
+        let mut metatiles = MetatilesIterator::new_for_bbox_zoom(8, &ie_bbox, 0, 5);
+        assert_eq!(metatiles.next(), Metatile::new(8, 0, 0, 0));
+        assert_eq!(metatiles.next(), Metatile::new(8, 1, 0, 0));
+        assert_eq!(metatiles.next(), Metatile::new(8, 2, 0, 0));
+        assert_eq!(metatiles.next(), Metatile::new(8, 3, 0, 0));
+        assert_eq!(metatiles.next(), Metatile::new(8, 4, 0, 0));
+        //assert_eq!(metatiles.next(), //Metatile::new(8, 4, 8, 0));
+        //assert_eq!(metatiles.next(), //Metatile::new(8, 4, 0, 8));
+        //assert_eq!(metatiles.next(), //Metatile::new(8, 4, 8, 8));
+        //assert_eq!(metatiles.next(), //Metatile::new(8, 5, 8, 8));
+        //assert_eq!(metatiles.next(), //Metatile::new(8, 5, 16, 8));
+        //assert_eq!(metatiles.next(), //Metatile::new(8, 5, 8, 16));
+        //assert_eq!(metatiles.next(), //Metatile::new(8, 5, 16, 16));
+        //assert_eq!(metatiles.next(), //Metatile::new(8, 5, 24, 8));
+
+    }
+
+    #[test]
+    fn test_metatile_subtiles_bbox3() {
+        use super::*;
+
+        let ie_bbox = BBox::new(55.7, -11.32, 51.11, -4.97).unwrap();
+        let mut metatiles = MetatilesIterator::new_for_bbox_zoom(8, &ie_bbox, 5, 5);
+        assert_eq!(metatiles.next(), Metatile::new(8, 5, 8, 8));
+        assert_eq!(metatiles.next(), None);
+
+    }
+    
+    #[test]
+    fn test_lat_lon_to_tile() {
+        use super::*;
+
+        assert_eq!(lat_lon_to_tile(51.50101, -0.12418, 18), (130981, 87177));
+        assert_eq!(lat_lon_to_tile(51.50101, -0.12418, 17), (65490, 43588));
+        assert_eq!(lat_lon_to_tile(51.50101, -0.12418, 16), (32745, 21794));
+        assert_eq!(lat_lon_to_tile(51.50101, -0.12418, 15), (16372, 10897));
+        assert_eq!(lat_lon_to_tile(51.50101, -0.12418, 14), (8186, 5448));
+        assert_eq!(lat_lon_to_tile(51.50101, -0.12418, 13), (4093, 2724));
+        assert_eq!(lat_lon_to_tile(51.50101, -0.12418, 11), (1023, 681));
+        assert_eq!(lat_lon_to_tile(51.50101, -0.12418, 10), (511, 340));
+        assert_eq!(lat_lon_to_tile(51.50101, -0.12418, 9), (255, 170));
+        assert_eq!(lat_lon_to_tile(51.50101, -0.12418, 8), (127, 85));
+        assert_eq!(lat_lon_to_tile(51.50101, -0.12418, 7), (63, 42));
+        assert_eq!(lat_lon_to_tile(51.50101, -0.12418, 6), (31, 21));
+        assert_eq!(lat_lon_to_tile(51.50101, -0.12418, 5), (15, 10));
+        assert_eq!(lat_lon_to_tile(51.50101, -0.12418, 4), (7, 5));
+        assert_eq!(lat_lon_to_tile(51.50101, -0.12418, 3), (3, 2));
+        assert_eq!(lat_lon_to_tile(51.50101, -0.12418, 2), (1, 1));
+        assert_eq!(lat_lon_to_tile(51.50101, -0.12418, 0), (0, 0));
+    }
 
 }
