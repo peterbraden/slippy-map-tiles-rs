@@ -228,6 +228,12 @@ impl Tile {
         format!("{}/{}/{}.{}", self.zoom, self.x, self.y, ext)
     }
 
+    /// Returns the ModTileMetatile path for storing this tile
+    pub fn mt_path<T: std::fmt::Display>(&self, ext: T) -> String {
+        let tc = xy_to_mt(self.x, self.y);
+        format!("{}/{}/{}/{}/{}/{}/{}.{}", self.zoom, tc[0], tc[1], tc[2], tc[3], tc[4], tc[5], ext)
+    }
+
     /// Returns an iterator that yields all the tiles possible, starting from `0/0/0`. Tiles are
     /// generated in a breath first manner, with all zoom 1 tiles before zoom 2 etc.
     ///
@@ -407,7 +413,7 @@ impl Iterator for AllSubTilesIterator {
     }
 }
 
-/// Metatiles are 8x8 tiles
+/// Metatiles are NxN tiles
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Hash)]
 pub struct Metatile {
     scale: u8,
@@ -644,6 +650,29 @@ impl Iterator for MetatilesIterator {
         Metatile::new(self.scale, zoom, x, y)
     }
 }
+
+
+/// Metatiles as found by mod_tile, always 8x8
+#[derive(PartialEq, Eq, Debug, Clone, Copy, Hash)]
+pub struct ModTileMetatile {
+    inner: Metatile
+}
+
+impl ModTileMetatile {
+    pub fn new(zoom: u8, x: u32, y: u32) -> Option<Self> {
+        match Metatile::new(8, zoom, x, y) {
+            None => None,
+            Some(inner) => Some(ModTileMetatile{ inner: inner })
+        }
+    }
+
+    /// Returns the mod_tile path for storing this metatile
+    pub fn path<T: std::fmt::Display>(&self, ext: T) -> String {
+        let mt = xy_to_mt(self.inner.x, self.inner.y);
+        format!("{}/{}/{}/{}/{}/{}.{}", self.inner.zoom, mt[0], mt[1], mt[2], mt[3], mt[4], ext)
+    }
+}
+
 
 fn tile_nw_lat_lon(zoom: u8, x: f32, y: f32) -> LatLon {
     let n: f32 = 2f32.powi(zoom as i32);
@@ -889,6 +918,43 @@ fn xy_to_ts(x: u32, y: u32) -> [String; 4] {
         format!("{:03}", x % 1_000),
         format!("{:03}", y/1_000),
         format!("{:03}", y % 1_000),
+    ]
+}
+
+/// Convert x & y to a ModTile metatile directory parts
+fn xy_to_mt(x: u32, y: u32) -> [String; 5] {
+    // /[base_dir]/[TileSetName]/[Z]/[xxxxyyyy]/[xxxxyyyy]/[xxxxyyyy]/[xxxxyyyy]/[xxxxyyyy].png
+    // i.e. /[base_dir]/[TileSetName]/[Z]/a/b/c/d/e.png
+
+    let mut x = x;
+    let mut y = y;
+
+    let e = (((x & 0b000_1111 as u32) << 4) | (y & 0b000_1111 as u32)) as u8;
+    x >>= 4;
+    y >>= 4;
+
+    let d = (((x & 0b000_1111 as u32) << 4) | (y & 0b000_1111 as u32)) as u8;
+    x >>= 4;
+    y >>= 4;
+
+    let c = (((x & 0b000_1111 as u32) << 4) | (y & 0b000_1111 as u32)) as u8;
+    x >>= 4;
+    y >>= 4;
+
+    let b = (((x & 0b000_1111 as u32) << 4) | (y & 0b000_1111 as u32)) as u8;
+    x >>= 4;
+    y >>= 4;
+
+    let a = (((x & 0b000_1111 as u32) << 4) | (y & 0b000_1111 as u32)) as u8;
+    //x >>= 4;
+    //y >>= 4;
+
+    [
+        format!("{}", a),
+        format!("{}", b),
+        format!("{}", c),
+        format!("{}", d),
+        format!("{}", e),
     ]
 }
 
@@ -1502,7 +1568,28 @@ mod test {
     }
 
     #[test]
+    fn mod_tile_path() {
+        let res = xy_to_mt(0, 0);
+        assert_eq!(res[0], "0");
+        assert_eq!(res[1], "0");
+        assert_eq!(res[2], "0");
+        assert_eq!(res[3], "0");
+        assert_eq!(res[4], "0");
+
+        let res = xy_to_mt(1, 1);
+        assert_eq!(res[0], "0");
+        assert_eq!(res[1], "0");
+        assert_eq!(res[2], "0");
+        assert_eq!(res[3], "0");
+        assert_eq!(res[4], "17");
+    }
+
+    #[test]
     fn test_mod_tile_metatile() {
+        let mt_meta = ModTileMetatile::new(0, 0, 0);
+        assert!(mt_meta.is_some());
+        let mt_meta = mt_meta.unwrap();
+        assert_eq!(mt_meta.path("png"), "0/0/0/0/0/0.png");
     }
 
 }
