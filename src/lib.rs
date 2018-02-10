@@ -529,11 +529,12 @@ impl MetatilesIterator {
     }
     
     pub fn new_for_bbox(scale: u8, bbox: &BBox) -> Self {
-        MetatilesIterator::new_for_bbox_zoom(scale, bbox, 0, 32)
+        MetatilesIterator::new_for_bbox_zoom(scale, &Some(bbox.clone()), 0, 32)
     }
 
-    pub fn new_for_bbox_zoom(scale: u8, bbox: &BBox, minzoom: u8, maxzoom: u8) -> Self {
-        let mut it = MetatilesIterator{ scale: scale, curr_zoom: minzoom, curr_zorder: 0, bbox: Some(bbox.clone()), maxzoom: maxzoom, curr_zoom_width_height: None, curr_zoom_start_xy: None };
+    /// `None` for bbox means 'whole world'
+    pub fn new_for_bbox_zoom(scale: u8, bbox: &Option<BBox>, minzoom: u8, maxzoom: u8) -> Self {
+        let mut it = MetatilesIterator{ scale: scale, curr_zoom: minzoom, curr_zorder: 0, bbox: bbox.clone(), maxzoom: maxzoom, curr_zoom_width_height: None, curr_zoom_start_xy: None };
         it.set_zoom_width_height();
         it.set_zoom_start_xy();
 
