@@ -926,17 +926,17 @@ fn xy_to_ts(x: u32, y: u32) -> [String; 4] {
 
 /// Convert x & y to a ModTile metatile directory parts
 fn xy_to_mt(x: u32, y: u32) -> [String; 5] {
-    // /[base_dir]/[TileSetName]/[Z]/[xxxxyyyy]/[xxxxyyyy]/[xxxxyyyy]/[xxxxyyyy]/[xxxxyyyy].png
-    // i.e. /[base_dir]/[TileSetName]/[Z]/a/b/c/d/e.png
+    // /[Z]/[xxxxyyyy]/[xxxxyyyy]/[xxxxyyyy]/[xxxxyyyy]/[xxxxyyyy].png
+    // i.e. /[Z]/a/b/c/d/e.png
 
     let mut x = x;
     let mut y = y;
 
-    let e = (((x & 0b000_1111 as u32) << 4) | (y & 0b000_1111 as u32)) as u8;
+    let e = (((x & 0x0f) << 4) | (y & 0x0f)) as u8;
     x >>= 4;
     y >>= 4;
 
-    let d = (((x & 0b000_1111 as u32) << 4) | (y & 0b000_1111 as u32)) as u8;
+    let d = (((x & 0x0f) << 4) | (y & 0x0f)) as u8;
     x >>= 4;
     y >>= 4;
 
