@@ -690,11 +690,21 @@ fn tile_nw_lat_lon(zoom: u8, x: f32, y: f32) -> LatLon {
 }
 
 fn lat_lon_to_tile(lat: f32, lon: f32, zoom: u8) -> (u32, u32) {
+    // TODO do this at compile time?
+    #[allow(non_snake_case)]
+    let MAX_LAT: f64 = std::f64::consts::PI.sinh().atan();
+
     let lat: f64 = lat as f64;
+    let lat = lat.to_radians();
+
     let lon: f64 = lon as f64;
+
+    // Clip the latitude to the max & min (~85.0511)
+    let lat = if lat > MAX_LAT { MAX_LAT } else if lat < -MAX_LAT { -MAX_LAT } else { lat };
+
     let n: f64 = 2f64.powi(zoom as i32);
     let xtile: u32 = (n * ((lon + 180.) / 360.)).trunc() as u32;
-    let ytile: u32 = (n * (1. - ((lat.to_radians().tan() + (1. / lat.to_radians().cos())).ln() / std::f64::consts::PI)) / 2.).trunc() as u32;
+    let ytile: u32 = (n * (1. - ((lat.tan() + (1. / lat.cos())).ln() / std::f64::consts::PI)) / 2.).trunc() as u32;
 
     (xtile, ytile)
 }
