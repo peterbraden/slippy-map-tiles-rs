@@ -1531,7 +1531,7 @@ mod test {
     fn test_metatile_subtiles_bbox2() {
 
         let ie_bbox = BBox::new(55.7, -11.32, 51.11, -4.97).unwrap();
-        let mut metatiles = MetatilesIterator::new_for_bbox_zoom(8, &ie_bbox, 0, 5);
+        let mut metatiles = MetatilesIterator::new_for_bbox_zoom(8, &Some(ie_bbox), 0, 5);
         assert_eq!(metatiles.next(), Metatile::new(8, 0, 0, 0));
         assert_eq!(metatiles.next(), Metatile::new(8, 1, 0, 0));
         assert_eq!(metatiles.next(), Metatile::new(8, 2, 0, 0));
@@ -1552,7 +1552,7 @@ mod test {
     fn test_metatile_subtiles_bbox3() {
 
         let ie_bbox = BBox::new(55.7, -11.32, 51.11, -4.97).unwrap();
-        let mut metatiles = MetatilesIterator::new_for_bbox_zoom(8, &ie_bbox, 5, 5);
+        let mut metatiles = MetatilesIterator::new_for_bbox_zoom(8, &Some(ie_bbox), 5, 5);
         assert_eq!(metatiles.next(), Metatile::new(8, 5, 8, 8));
         assert_eq!(metatiles.next(), None);
 
