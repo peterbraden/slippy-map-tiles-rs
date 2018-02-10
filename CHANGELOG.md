@@ -1,3 +1,19 @@
+<a name="v0.12.0"></a>
+## v0.12.0 (2018-02-10)
+
+
+#### Bug Fixes
+
+*   Clip lattitude ([526c3cd8](526c3cd8))
+
+#### Features
+
+*   BBox fix ups ([cf21cbcb](cf21cbcb))
+*   Easy way to get a generic metatile into modtilemetatile ([d70d2d58](d70d2d58))
+*   Add .zxy() method to quickly get this string rep ([1dc51302](1dc51302))
+
+
+
 <a name="v0.11.0"></a>
 ## v0.11.0 (2017-04-12)
 
