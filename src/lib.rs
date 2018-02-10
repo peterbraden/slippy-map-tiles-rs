@@ -578,7 +578,6 @@ impl Iterator for MetatilesIterator {
     type Item = Metatile;
 
     fn next(&mut self) -> Option<Self::Item> {
-        //println!("\n\nStart of iterator");
 
         // have to set a value, but we're never going to read it
         #[allow(unused_assignments)]
@@ -730,7 +729,6 @@ impl LatLon {
         let x = self.lon() * 20037508.34 / 180.;
         let pi = std::f32::consts::PI;
         let y = ((90. + self.lat()) * pi / 360.).tan().ln() / (pi / 180.);
-        //var y = Math.log(Math.tan((90 + lat) * Math.PI / 360)) / (Math.PI / 180);
         let y = y * 20037508.34 / 180.;
         
         (x, y)
