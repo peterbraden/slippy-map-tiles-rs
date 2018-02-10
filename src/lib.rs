@@ -264,6 +264,10 @@ impl Tile {
         Metatile::new(scale, self.zoom(), self.x(), self.y())
     }
 
+    pub fn modtile_metatile(&self) -> Option<ModTileMetatile> {
+        ModTileMetatile::new(self.zoom(), self.x(), self.y())
+    }
+
 }
 /// Iterates over all the tiles in the world.
 pub struct AllTilesIterator {
