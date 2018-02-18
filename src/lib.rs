@@ -546,13 +546,16 @@ impl MetatilesIterator {
     /// (`self.curr_zoom`)
     fn set_zoom_width_height(&mut self) {
         if let Some(ref bbox) = self.bbox {
+            let scale = self.scale as u32;
             let zoom = self.curr_zoom;
             // TODO is this x/y lat/lon the right way around?
             let (x1, y1) = lat_lon_to_tile(bbox.top, bbox.left, zoom);
+            let (x1, y1) = (x1/scale, y1/scale);
             let (x2, y2) = lat_lon_to_tile(bbox.bottom, bbox.right, zoom);
+            let (x2, y2) = (x2/scale, y2/scale);
 
-            let width = x2 - x1;
-            let height = y2 - y1;
+            let width = x2 - x1 + 1;
+            let height = y2 - y1 + 1;
 
             self.curr_zoom_width_height = Some((width, height));
         }
@@ -599,9 +602,20 @@ impl Iterator for MetatilesIterator {
                 return None;
             }
 
-            //println!("loop start curr_zoom {} curr_zorder {} curr_zoom_start_xy {:?} curr_zoom_width_height {:?}", self.curr_zoom, self.curr_zorder, self.curr_zoom_start_xy, self.curr_zoom_width_height);
+            zoom = self.curr_zoom;
+            let (width, height) = match self.curr_zoom_width_height {
+                None => {
+                    let max_num = 2u32.pow(zoom as u32);
+                    let mut max = max_num/scale;
+                    if max_num % scale > 0 {
+                        max += 1
+                    }
+                    (max, max)
+                },
+                Some((width, height)) => (width, height),
+            };
 
-            zoom =  self.curr_zoom;
+            let max_zorder_for_zoom = xy_to_zorder(width-1, height-1);
 
             let (i, j) = zorder_to_xy(self.curr_zorder);
             let bits = match self.curr_zoom_start_xy {
@@ -611,49 +625,31 @@ impl Iterator for MetatilesIterator {
             x = bits.0;
             y = bits.1;
 
-            let (width, height) = match self.curr_zoom_width_height {
-                None => { let max = (2u32.pow(zoom as u32) - 1) / scale; (max, max) },
-                Some((width, height)) => (width, height),
-            };
 
-            //println!("in loop ij {} {} xy {} {} width,height {} {}", i, j, x, y, width, height);
 
-            if i >= width && j >= height {
-                //println!("At the end");
+            if self.curr_zorder > max_zorder_for_zoom {
+                // Next zoom
                 // we're at the end
                 self.curr_zoom = zoom + 1;
                 self.curr_zorder = 0;
                 self.set_zoom_start_xy();
                 self.set_zoom_width_height();
 
-                if i == width && j == width {
-                    // When the bbox fits exactly, then just return this tile
-                    // The xy from earlier is used
-                    break;
-                } else {
-                    // We have gone outside the bbox, so the next tile is in the next zoom level
-                    continue;
-                }
             } else if i > width || j > height {
-                //println!("gone outside range");
-                // If the bbox is non-square, there will be X (or Y) tiles which are outside the
-                // bbox. Rather than go to the next zoom level, we want to contine to look at the
-                // next tile in order, and keep going until we get a tile that's inside the bbox.
-                // The order is important here, if x >= maxx && y >= maxy, then we're at the end
-                // and need to go to the next zoom, but in this case, we stay on this zoom and go
-                // to the next tile
+                // If the bbox is non-square, there will be X (or Y) tiles which are outside
+                // the bbox. Rather than go to the next zoom level, we want to contine to look at
+                // the next tile in order, and keep going until we get a tile that's inside the
+                // bbox.  to the next tile
                 self.curr_zorder += 1;
                 continue;
             } else {
-                //println!("OK tile, next time stay on this zoom");
+                // This z order is OK
                 self.curr_zorder += 1;
                 break;
             }
-
         }
 
         let (x, y) = (x*scale, y*scale);
-        //println!("returning {} {} {}", zoom, x, y);
         Metatile::new(self.scale, zoom, x, y)
     }
 }
@@ -710,6 +706,35 @@ fn lat_lon_to_tile(lat: f32, lon: f32, zoom: u8) -> (u32, u32) {
     let ytile: u32 = (n * (1. - ((lat.tan() + (1. / lat.cos())).ln() / std::f64::consts::PI)) / 2.).trunc() as u32;
 
     (xtile, ytile)
+}
+
+/// How many tiles does this bbox cover at this zoom
+/// If there is an overflow for usize, `None` is returned, if not, a `Some(...)`
+pub fn size_bbox_zoom(bbox: &BBox, zoom: u8) -> Option<usize> {
+    let top_left_tile = lat_lon_to_tile(bbox.top(), bbox.left(), zoom);
+    let bottom_right_tile = lat_lon_to_tile(bbox.bottom(), bbox.right(), zoom);
+    let height = (bottom_right_tile.0 - top_left_tile.0) as usize + 1;
+    let width = (bottom_right_tile.1 - top_left_tile.1) as usize + 1;
+    
+    height.checked_mul(width)
+}
+
+/// How many metatiles, of this scale, does this bbox cover at this zoom
+/// If there is an overflow for usize, `None` is returned, if not, a `Some(...)`
+/// This is less likely to overflow than `size_bbox_zoom` because metatiles are larger
+pub fn size_bbox_zoom_metatiles(bbox: &BBox, zoom: u8, metatile_scale: u8) -> Option<usize> {
+    let metatile_scale = metatile_scale as u32;
+    let top_left_tile = lat_lon_to_tile(bbox.top(), bbox.left(), zoom);
+    let bottom_right_tile = lat_lon_to_tile(bbox.bottom(), bbox.right(), zoom);
+    let bottom = (bottom_right_tile.0 / metatile_scale)*metatile_scale;
+    let top = (top_left_tile.0 / metatile_scale)*metatile_scale;
+    let left = (top_left_tile.1 / metatile_scale)*metatile_scale;
+    let right = (bottom_right_tile.1 / metatile_scale)*metatile_scale;
+
+    let height = ((bottom - top)/metatile_scale as u32) as usize + 1;
+    let width = ((right - left)/metatile_scale as u32) as usize + 1;
+    
+    height.checked_mul(width)
 }
 
 /// A single point in the world.
@@ -1451,10 +1476,12 @@ mod test {
         assert_eq!(it.next(), Metatile::new(8, 1, 0, 0));
         assert_eq!(it.next(), Metatile::new(8, 2, 0, 0));
         assert_eq!(it.next(), Metatile::new(8, 3, 0, 0));
+
         assert_eq!(it.next(), Metatile::new(8, 4, 0, 0));
         assert_eq!(it.next(), Metatile::new(8, 4, 8, 0));
         assert_eq!(it.next(), Metatile::new(8, 4, 0, 8));
         assert_eq!(it.next(), Metatile::new(8, 4, 8, 8));
+
         assert_eq!(it.next(), Metatile::new(8, 5, 0, 0));
 
         let it = Metatile::all(8);
@@ -1512,22 +1539,16 @@ mod test {
         assert_eq!(metatiles.next(), Metatile::new(8, 5, 8, 8));
 
         assert_eq!(metatiles.next(), Metatile::new(8, 6, 24, 16));
-        assert_eq!(metatiles.next(), Metatile::new(8, 6, 32, 16));
-        assert_eq!(metatiles.next(), Metatile::new(8, 6, 24, 24));
-        assert_eq!(metatiles.next(), Metatile::new(8, 6, 32, 24));
-        assert_eq!(metatiles.next(), Metatile::new(8, 6, 40, 16));
 
         assert_eq!(metatiles.next(), Metatile::new(8, 7, 56, 40));
-        assert_eq!(metatiles.next(), Metatile::new(8, 7, 64, 40));
-        assert_eq!(metatiles.next(), Metatile::new(8, 7, 56, 48));
-        assert_eq!(metatiles.next(), Metatile::new(8, 7, 64, 48));
-        assert_eq!(metatiles.next(), Metatile::new(8, 7, 72, 40));
-        assert_eq!(metatiles.next(), Metatile::new(8, 7, 80, 40));
-        assert_eq!(metatiles.next(), Metatile::new(8, 7, 72, 48));
-        assert_eq!(metatiles.next(), Metatile::new(8, 7, 80, 48));
-        assert_eq!(metatiles.next(), Metatile::new(8, 7, 56, 56));
-        assert_eq!(metatiles.next(), Metatile::new(8, 7, 64, 56));
-        assert_eq!(metatiles.next(), Metatile::new(8, 7, 72, 56));
+
+        assert_eq!(metatiles.next(), Metatile::new(8, 8, 112, 80));
+        assert_eq!(metatiles.next(), Metatile::new(8, 8, 120, 80));
+
+        assert_eq!(metatiles.next(), Metatile::new(8, 9, 232, 160));
+        assert_eq!(metatiles.next(), Metatile::new(8, 9, 240, 160));
+        assert_eq!(metatiles.next(), Metatile::new(8, 9, 232, 168));
+        assert_eq!(metatiles.next(), Metatile::new(8, 9, 240, 168));
     }
 
     #[test]
@@ -1540,16 +1561,10 @@ mod test {
         assert_eq!(metatiles.next(), Metatile::new(8, 2, 0, 0));
         assert_eq!(metatiles.next(), Metatile::new(8, 3, 0, 0));
         assert_eq!(metatiles.next(), Metatile::new(8, 4, 0, 0));
-        //assert_eq!(metatiles.next(), //Metatile::new(8, 4, 8, 0));
-        //assert_eq!(metatiles.next(), //Metatile::new(8, 4, 0, 8));
-        //assert_eq!(metatiles.next(), //Metatile::new(8, 4, 8, 8));
-        //assert_eq!(metatiles.next(), //Metatile::new(8, 5, 8, 8));
-        //assert_eq!(metatiles.next(), //Metatile::new(8, 5, 16, 8));
-        //assert_eq!(metatiles.next(), //Metatile::new(8, 5, 8, 16));
-        //assert_eq!(metatiles.next(), //Metatile::new(8, 5, 16, 16));
-        //assert_eq!(metatiles.next(), //Metatile::new(8, 5, 24, 8));
-
+        assert_eq!(metatiles.next(), Metatile::new(8, 5, 8, 8));
+        assert_eq!(metatiles.next(), None);
     }
+
 
     #[test]
     fn test_metatile_subtiles_bbox3() {
@@ -1560,9 +1575,31 @@ mod test {
         assert_eq!(metatiles.next(), None);
 
     }
+
+    #[test]
+    fn test_metatile_subtiles_bbox4() {
+        let ie_d_bbox = BBox::new(53.61, -6.66, 53.08, -5.98).unwrap();
+        let mut metatiles = MetatilesIterator::new_for_bbox_zoom(8, &Some(ie_d_bbox), 0, 10);
+        assert_eq!(metatiles.next(), Metatile::new(8, 0, 0, 0));
+        assert_eq!(metatiles.next(), Metatile::new(8, 1, 0, 0));
+        assert_eq!(metatiles.next(), Metatile::new(8, 2, 0, 0));
+        assert_eq!(metatiles.next(), Metatile::new(8, 3, 0, 0));
+        assert_eq!(metatiles.next(), Metatile::new(8, 4, 0, 0));
+        assert_eq!(metatiles.next(), Metatile::new(8, 5, 8, 8));
+        assert_eq!(metatiles.next(), Metatile::new(8, 6, 24, 16));
+        assert_eq!(metatiles.next(), Metatile::new(8, 7, 56, 40));
+
+        assert_eq!(metatiles.next(), Metatile::new(8, 8, 120, 80));
+
+        assert_eq!(metatiles.next(), Metatile::new(8, 9, 240, 160));
+
+        assert_eq!(metatiles.next(), Metatile::new(8, 10, 488, 328));
+
+        assert_eq!(metatiles.next(), None);
+    }
     
     #[test]
-    fn test_lat_lon_to_tile() {
+    fn test_lat_lon_to_tile1() {
 
         assert_eq!(lat_lon_to_tile(51.50101, -0.12418, 18), (130981, 87177));
         assert_eq!(lat_lon_to_tile(51.50101, -0.12418, 17), (65490, 43588));
@@ -1581,6 +1618,15 @@ mod test {
         assert_eq!(lat_lon_to_tile(51.50101, -0.12418, 3), (3, 2));
         assert_eq!(lat_lon_to_tile(51.50101, -0.12418, 2), (1, 1));
         assert_eq!(lat_lon_to_tile(51.50101, -0.12418, 0), (0, 0));
+    }
+
+    #[test]
+    fn test_lat_lon_to_tile2() {
+        assert_eq!(lat_lon_to_tile(53.61, -6.66, 9), (246, 165));
+        assert_eq!(lat_lon_to_tile(53.08, -5.98, 9), (247, 166));
+
+        assert_eq!(lat_lon_to_tile(53.61, -6.66, 10), (493, 330));
+        assert_eq!(lat_lon_to_tile(53.08, -5.98, 10), (494, 333));
     }
 
     #[test]
@@ -1606,6 +1652,93 @@ mod test {
         assert!(mt_meta.is_some());
         let mt_meta = mt_meta.unwrap();
         assert_eq!(mt_meta.path("png"), "0/0/0/0/0/0.png");
+    }
+    
+    #[test]
+    fn size_bbox_zoom1() {
+        let ie_bbox = BBox::new(55.7, -11.32, 51.11, -4.97).unwrap();
+        assert_eq!(size_bbox_zoom(&ie_bbox, 0), Some(1));
+        assert_eq!(size_bbox_zoom(&ie_bbox, 1), Some(1));
+        assert_eq!(size_bbox_zoom(&ie_bbox, 2), Some(1));
+        assert_eq!(size_bbox_zoom(&ie_bbox, 3), Some(1));
+        assert_eq!(size_bbox_zoom(&ie_bbox, 4), Some(1));
+        assert_eq!(size_bbox_zoom(&ie_bbox, 5), Some(2));
+        assert_eq!(size_bbox_zoom(&ie_bbox, 6), Some(6));
+        assert_eq!(size_bbox_zoom(&ie_bbox, 7), Some(12));
+        assert_eq!(size_bbox_zoom(&ie_bbox, 8), Some(36));
+        assert_eq!(size_bbox_zoom(&ie_bbox, 9), Some(120));
+        assert_eq!(size_bbox_zoom(&ie_bbox, 10), Some(437));
+        assert_eq!(size_bbox_zoom(&ie_bbox, 11), Some(1665));
+        assert_eq!(size_bbox_zoom(&ie_bbox, 12), Some(6497));
+        assert_eq!(size_bbox_zoom(&ie_bbox, 13), Some(25520));
+        assert_eq!(size_bbox_zoom(&ie_bbox, 14), Some(102080));
+        assert_eq!(size_bbox_zoom(&ie_bbox, 15), Some(407037));
+        assert_eq!(size_bbox_zoom(&ie_bbox, 16), Some(1625585));
+        assert_eq!(size_bbox_zoom(&ie_bbox, 17), Some(6494904));
+        assert_eq!(size_bbox_zoom(&ie_bbox, 18), Some(25959136));
+    }
+
+    #[test]
+    fn size_bbox_zoom2() {
+        let bbox = BBox::new(1e-5, -1e-5, -1e-5, 1e-5).unwrap();
+        assert_eq!(size_bbox_zoom(&bbox, 0), Some(1));
+        assert_eq!(size_bbox_zoom(&bbox, 1), Some(4));
+        assert_eq!(size_bbox_zoom(&bbox, 2), Some(4));
+        assert_eq!(size_bbox_zoom(&bbox, 3), Some(4));
+        assert_eq!(size_bbox_zoom(&bbox, 4), Some(4));
+        assert_eq!(size_bbox_zoom(&bbox, 5), Some(4));
+        assert_eq!(size_bbox_zoom(&bbox, 6), Some(4));
+        assert_eq!(size_bbox_zoom(&bbox, 7), Some(4));
+        assert_eq!(size_bbox_zoom(&bbox, 8), Some(4));
+        assert_eq!(size_bbox_zoom(&bbox, 9), Some(4));
+        assert_eq!(size_bbox_zoom(&bbox, 10), Some(4));
+        assert_eq!(size_bbox_zoom(&bbox, 11), Some(4));
+        assert_eq!(size_bbox_zoom(&bbox, 12), Some(4));
+        assert_eq!(size_bbox_zoom(&bbox, 13), Some(4));
+        assert_eq!(size_bbox_zoom(&bbox, 14), Some(4));
+        assert_eq!(size_bbox_zoom(&bbox, 15), Some(4));
+        assert_eq!(size_bbox_zoom(&bbox, 16), Some(4));
+        assert_eq!(size_bbox_zoom(&bbox, 17), Some(4));
+        assert_eq!(size_bbox_zoom(&bbox, 18), Some(4));
+    }
+
+    #[test]
+    fn size_bbox_zoom_metatiles1() {
+        let ie_bbox = BBox::new(55.7, -11.32, 51.11, -4.97).unwrap();
+        assert_eq!(size_bbox_zoom_metatiles(&ie_bbox, 0, 8), Some(1));
+        assert_eq!(size_bbox_zoom_metatiles(&ie_bbox, 1, 8), Some(1));
+        assert_eq!(size_bbox_zoom_metatiles(&ie_bbox, 2, 8), Some(1));
+        assert_eq!(size_bbox_zoom_metatiles(&ie_bbox, 3, 8), Some(1));
+        assert_eq!(size_bbox_zoom_metatiles(&ie_bbox, 4, 8), Some(1));
+        assert_eq!(size_bbox_zoom_metatiles(&ie_bbox, 5, 8), Some(1));
+        assert_eq!(size_bbox_zoom_metatiles(&ie_bbox, 6, 8), Some(1));
+        assert_eq!(size_bbox_zoom_metatiles(&ie_bbox, 7, 8), Some(1));
+        assert_eq!(size_bbox_zoom_metatiles(&ie_bbox, 8, 8), Some(2));
+        assert_eq!(size_bbox_zoom_metatiles(&ie_bbox, 9, 8), Some(6));
+        assert_eq!(size_bbox_zoom_metatiles(&ie_bbox, 10, 8), Some(12));
+        assert_eq!(size_bbox_zoom_metatiles(&ie_bbox, 11, 8), Some(36));
+        assert_eq!(size_bbox_zoom_metatiles(&ie_bbox, 12, 8), Some(120));
+        assert_eq!(size_bbox_zoom_metatiles(&ie_bbox, 13, 8), Some(437));
+        assert_eq!(size_bbox_zoom_metatiles(&ie_bbox, 14, 8), Some(1665));
+        assert_eq!(size_bbox_zoom_metatiles(&ie_bbox, 15, 8), Some(6497));
+        assert_eq!(size_bbox_zoom_metatiles(&ie_bbox, 16, 8), Some(25520));
+        assert_eq!(size_bbox_zoom_metatiles(&ie_bbox, 17, 8), Some(102080));
+        assert_eq!(size_bbox_zoom_metatiles(&ie_bbox, 18, 8), Some(407037));
+    }
+
+    #[test]
+    fn size_bbox_zoom_metatiles2() {
+        let ie_d_bbox = BBox::new(53.61, -6.66, 53.08, -5.98).unwrap();
+        assert_eq!(size_bbox_zoom_metatiles(&ie_d_bbox, 9, 8), Some(1));
+        assert_eq!(size_bbox_zoom_metatiles(&ie_d_bbox, 10, 8), Some(1));
+        assert_eq!(size_bbox_zoom_metatiles(&ie_d_bbox, 11, 8), Some(2));
+        assert_eq!(size_bbox_zoom_metatiles(&ie_d_bbox, 12, 8), Some(4));
+        assert_eq!(size_bbox_zoom_metatiles(&ie_d_bbox, 13, 8), Some(8));
+        assert_eq!(size_bbox_zoom_metatiles(&ie_d_bbox, 14, 8), Some(24));
+        assert_eq!(size_bbox_zoom_metatiles(&ie_d_bbox, 15, 8), Some(88));
+        assert_eq!(size_bbox_zoom_metatiles(&ie_d_bbox, 16, 8), Some(336));
+        assert_eq!(size_bbox_zoom_metatiles(&ie_d_bbox, 17, 8), Some(1344));
+        assert_eq!(size_bbox_zoom_metatiles(&ie_d_bbox, 18, 8), Some(5166));
     }
 
 }
