@@ -279,7 +279,6 @@ impl Iterator for AllTilesIterator {
     type Item = Tile;
 
     fn next(&mut self) -> Option<Tile> {
-        //println!("Getting tile zoom {} zorder {}", self.next_zoom, self.next_zorder);
         let zoom =  self.next_zoom;
         let (x, y) = zorder_to_xy(self.next_zorder);
         let tile = Tile::new(zoom, x, y);
@@ -519,6 +518,8 @@ pub struct MetatilesIterator {
     maxzoom: u8,
     curr_zorder: u64,
     bbox: Option<BBox>,
+
+    // In metatile coords, i.e. x/scale
     curr_zoom_width_height: Option<(u32, u32)>,
     curr_zoom_start_xy: Option<(u32, u32)>,
 }
@@ -541,6 +542,8 @@ impl MetatilesIterator {
         it
     }
 
+    /// Update the `self.curr_zoom_width_height` variable with the correct value for this zoom
+    /// (`self.curr_zoom`)
     fn set_zoom_width_height(&mut self) {
         if let Some(ref bbox) = self.bbox {
             let zoom = self.curr_zoom;
