@@ -1,3 +1,17 @@
+<a name="v0.13.0"></a>
+## v0.13.0 (2018-02-18)
+
+
+#### Bug Fixes
+
+*   Bugs with previous MetatileIterator returning too many tiles for a bbox ([42715d66](42715d66))
+
+#### Features
+
+*   BBox fix ups ([fed9db10](fed9db10))
+
+
+
 <a name="v0.12.0"></a>
 ## v0.12.0 (2018-02-10)
 
