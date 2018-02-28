@@ -17,6 +17,8 @@ extern crate regex;
 
 use regex::Regex;
 use std::str::FromStr;
+use std::fs::File;
+use std::io::{BufRead, BufReader, Seek, SeekFrom};
 
 /// A single tile.
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Hash)]
@@ -592,11 +594,15 @@ pub struct MetatilesIterator {
     // In metatile coords, i.e. x/scale
     curr_zoom_width_height: Option<(u32, u32)>,
     curr_zoom_start_xy: Option<(u32, u32)>,
+
+    // If we're reading from a file
+    total: Option<usize>,
+    tile_list_file: Option<BufReader<File>>,
 }
 
 impl MetatilesIterator {
     pub fn all(scale: u8) -> Self {
-        MetatilesIterator{ scale: scale, curr_zoom: 0, curr_zorder: 0, bbox: None, maxzoom: 32, curr_zoom_width_height: None, curr_zoom_start_xy: None }
+        MetatilesIterator{ scale: scale, curr_zoom: 0, curr_zorder: 0, bbox: None, maxzoom: 32, curr_zoom_width_height: None, curr_zoom_start_xy: None, total: None, tile_list_file: None }
     }
     
     pub fn new_for_bbox(scale: u8, bbox: &BBox) -> Self {
@@ -605,11 +611,24 @@ impl MetatilesIterator {
 
     /// `None` for bbox means 'whole world'
     pub fn new_for_bbox_zoom(scale: u8, bbox: &Option<BBox>, minzoom: u8, maxzoom: u8) -> Self {
-        let mut it = MetatilesIterator{ scale: scale, curr_zoom: minzoom, curr_zorder: 0, bbox: bbox.clone(), maxzoom: maxzoom, curr_zoom_width_height: None, curr_zoom_start_xy: None };
+        let mut it = MetatilesIterator{ scale: scale, curr_zoom: minzoom, curr_zorder: 0, bbox: bbox.clone(), maxzoom: maxzoom, curr_zoom_width_height: None, curr_zoom_start_xy: None, total: None, tile_list_file: None };
         it.set_zoom_width_height();
         it.set_zoom_start_xy();
 
         it
+    }
+
+    pub fn new_from_filelist(filename: String) -> Self {
+        let mut file = BufReader::new(File::open(&filename).unwrap());
+        file.seek(SeekFrom::Start(0)).unwrap();
+
+        // we're intentionally ignore usize overflow. If you have that many lines in a file,
+        // you're probably doing something wrong.
+        let total = file.lines().count();
+
+        let file = BufReader::new(File::open(filename).unwrap());
+
+        MetatilesIterator{ scale: 0, curr_zoom: 0, curr_zorder: 0, bbox: None, maxzoom: 0, curr_zoom_width_height: None, curr_zoom_start_xy: None, total: Some(total), tile_list_file: Some(file) }
     }
 
     /// Update the `self.curr_zoom_width_height` variable with the correct value for this zoom
@@ -648,12 +667,8 @@ impl MetatilesIterator {
         let (x1, y1) = lat_lon_to_tile(top, left, self.curr_zoom);
         self.curr_zoom_start_xy = Some((x1/self.scale as u32, y1/self.scale as u32));
     }
-}
 
-impl Iterator for MetatilesIterator {
-    type Item = Metatile;
-
-    fn next(&mut self) -> Option<Self::Item> {
+    fn next_from_zorder(&mut self) -> Option<Metatile> {
 
         // have to set a value, but we're never going to read it
         #[allow(unused_assignments)]
@@ -722,7 +737,35 @@ impl Iterator for MetatilesIterator {
         let (x, y) = (x*scale, y*scale);
         Metatile::new(self.scale, zoom, x, y)
     }
+
+    fn next_from_file(&mut self) -> Option<Metatile> {
+        let mut s = String::new();
+        if let Some(ref mut file) = self.tile_list_file {
+            file.read_line(&mut s).unwrap();
+        }
+        // remove trailing newline
+        let s = s.trim_right();
+
+        s.parse().ok()
+    }
+
+    pub fn total(&self) -> Option<usize> {
+        self.total
+    }
 }
+
+impl Iterator for MetatilesIterator {
+    type Item = Metatile;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.tile_list_file.is_some() {
+            self.next_from_file()
+        } else {
+            self.next_from_zorder()
+        }
+    }
+}
+
 
 
 /// Metatiles as found by mod_tile, always 8x8
@@ -950,7 +993,7 @@ impl BBox {
     /// Iterate over all the metatiles from z0 onwards that this bbox is in
     pub fn metatiles(&self, scale: u8) -> MetatilesIterator {
         let bbox: BBox = (*self).clone();
-        MetatilesIterator{ curr_zoom: 0, maxzoom: 32, bbox: Some(bbox), curr_zorder: 0, scale: scale, curr_zoom_width_height: None, curr_zoom_start_xy: None }
+        MetatilesIterator{ curr_zoom: 0, maxzoom: 32, bbox: Some(bbox), curr_zorder: 0, scale: scale, curr_zoom_width_height: None, curr_zoom_start_xy: None, total: None, tile_list_file: None }
     }
 
     /// Return the top value of this bbox
