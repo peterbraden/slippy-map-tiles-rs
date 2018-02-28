@@ -16,6 +16,7 @@
 extern crate regex;
 
 use regex::Regex;
+use std::str::FromStr;
 
 /// A single tile.
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Hash)]
@@ -269,6 +270,41 @@ impl Tile {
     }
 
 }
+
+impl FromStr for Tile {
+    type Err = ();
+    
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+
+        lazy_static! {
+            static ref TILE_RE: Regex = Regex::new("^(?P<zoom>[0-9]?[0-9])/(?P<x>[0-9]{1,10})/(?P<y>[0-9]{1,10})$").unwrap();
+        }
+
+        let caps = TILE_RE.captures(s);
+
+        if caps.is_none() {
+            return Err(());
+        }
+        let caps = caps.unwrap();
+
+        // If the regex matches, then none of these should fail, right?
+        let zoom = caps.name("zoom").unwrap().parse().unwrap();
+        let x = caps.name("x").unwrap().parse().unwrap();
+        let y = caps.name("y").unwrap().parse().unwrap();
+        
+        match Tile::new(zoom, x, y) {
+            None => {
+                // Invalid x or y for the zoom
+                Err(())
+            },
+            Some(t) => {
+                Ok(t)
+            }
+        }
+    }
+}
+
+
 /// Iterates over all the tiles in the world.
 pub struct AllTilesIterator {
     next_zoom: u8,
