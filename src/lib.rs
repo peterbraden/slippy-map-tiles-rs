@@ -744,6 +744,16 @@ impl ModTileMetatile {
         let mt = xy_to_mt(self.inner.x, self.inner.y);
         format!("{}/{}/{}/{}/{}/{}.{}", self.inner.zoom, mt[0], mt[1], mt[2], mt[3], mt[4], ext)
     }
+
+    /// X value of this metatile
+    pub fn x(&self) -> u32 { self.inner.x }
+
+    /// Y value of metatile
+    pub fn y(&self) -> u32 { self.inner.y }
+
+    /// Y value of metatile
+    pub fn size(self) -> u8 { self.inner.size() }
+
 }
 
 
