@@ -1,3 +1,16 @@
+<a name="v0.14.0"></a>
+## v0.14.0 (2018-02-28)
+
+
+#### Features
+
+*   Can read MetaTile's from a file and iterate over that ([6bcbc0ee](6bcbc0ee))
+*   Convience .x/y/scale methods to MetaTile's ([9bfc466b](9bfc466b))
+*   Add FromStr for Metatile (in "scale Z/X/Y") format ([a300aa97](a300aa97))
+*   Add FromStr for Tile (in "Z/X/Y" format) ([b7256fe1](b7256fe1))
+
+
+
 <a name="v0.13.0"></a>
 ## v0.13.0 (2018-02-18)
 
