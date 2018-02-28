@@ -545,6 +545,40 @@ impl Metatile {
     }
 }
 
+impl FromStr for Metatile {
+    type Err = ();
+    
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+
+        lazy_static! {
+            static ref METATILE_RE: Regex = Regex::new("^(?P<scale>[0-9]+) (?P<zoom>[0-9]?[0-9])/(?P<x>[0-9]{1,10})/(?P<y>[0-9]{1,10})$").unwrap();
+        }
+
+        let caps = METATILE_RE.captures(s);
+
+        if caps.is_none() {
+            return Err(());
+        }
+        let caps = caps.unwrap();
+
+        // If the regex matches, then none of these should fail, right?
+        let scale = caps.name("scale").unwrap().parse().unwrap();
+        let zoom = caps.name("zoom").unwrap().parse().unwrap();
+        let x = caps.name("x").unwrap().parse().unwrap();
+        let y = caps.name("y").unwrap().parse().unwrap();
+        
+        match Metatile::new(scale, zoom, x, y) {
+            None => {
+                // Invalid x or y for the zoom
+                Err(())
+            },
+            Some(mt) => {
+                Ok(mt)
+            }
+        }
+    }
+}
+
 
 /// Iterates over all the metatiles in the world.
 #[derive(Debug)]
@@ -1775,6 +1809,15 @@ mod test {
         assert_eq!(size_bbox_zoom_metatiles(&ie_d_bbox, 16, 8), Some(336));
         assert_eq!(size_bbox_zoom_metatiles(&ie_d_bbox, 17, 8), Some(1344));
         assert_eq!(size_bbox_zoom_metatiles(&ie_d_bbox, 18, 8), Some(5166));
+    }
+
+    #[test]
+    fn parse_metatile1() {
+        assert_eq!("8 3/0/0".parse().ok(), Metatile::new(8, 3, 0, 0));
+        assert_eq!("8 0/0/0".parse().ok(), Metatile::new(8, 0, 0, 0));
+        assert_eq!("0 0/0/0".parse::<Metatile>().ok(), None);
+        assert_eq!("8 0/10/10".parse::<Metatile>().ok(), None);
+        assert_eq!("8 4/1/1".parse().ok(), Metatile::new(8, 4, 0, 0));
     }
 
 }
