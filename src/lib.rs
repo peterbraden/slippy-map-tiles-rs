@@ -1416,26 +1416,26 @@ mod test {
         let bbox = "10 20 30 40".parse().ok();
         assert!(bbox.is_some());
         let bbox: BBox = bbox.unwrap();
-        assert_eq!(bbox.top(), 10.);
-        assert_eq!(bbox.left(), 20.);
-        assert_eq!(bbox.bottom(), 30.);
-        assert_eq!(bbox.right(), 40.);
+        assert_eq!(bbox.top(), 40.);
+        assert_eq!(bbox.left(), 10.);
+        assert_eq!(bbox.bottom(), 20.);
+        assert_eq!(bbox.right(), 30.);
 
         let bbox = "10,20,30,40".parse().ok();
         assert!(bbox.is_some());
         let bbox: BBox = bbox.unwrap();
-        assert_eq!(bbox.top(), 10.);
-        assert_eq!(bbox.left(), 20.);
-        assert_eq!(bbox.bottom(), 30.);
-        assert_eq!(bbox.right(), 40.);
+        assert_eq!(bbox.top(), 40.);
+        assert_eq!(bbox.left(), 10.);
+        assert_eq!(bbox.bottom(), 20.);
+        assert_eq!(bbox.right(), 30.);
 
         let bbox = "71.6,-25.93,35.55,48.9".parse().ok();
         assert!(bbox.is_some());
         let bbox: BBox = bbox.unwrap();
-        assert_eq!(bbox.top(), 71.6);
-        assert_eq!(bbox.left(), -25.93);
-        assert_eq!(bbox.bottom(), 35.55);
-        assert_eq!(bbox.right(), 48.9);
+        assert_eq!(bbox.top(), 48.9);
+        assert_eq!(bbox.left(), 71.6);
+        assert_eq!(bbox.bottom(), -25.93);
+        assert_eq!(bbox.right(), 35.55);
 
         fn known_bad(s: &str) {
             assert!(BBox::from_str(s).is_err());
