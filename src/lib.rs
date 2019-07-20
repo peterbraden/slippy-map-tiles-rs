@@ -10,15 +10,22 @@
 //!
 //! You cannot create invalid tiles
 //! ```
-//! assert!(Tile::new(0, 3, 3).is_none);
+//! # use slippy_map_tiles::Tile;
+//! assert!(Tile::new(0, 3, 3).is_none());
 //! ```
 #[macro_use] extern crate lazy_static;
 extern crate regex;
+
+#[cfg(feature="world_file")]
+extern crate world_image_file;
 
 use regex::Regex;
 use std::str::FromStr;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Seek, SeekFrom};
+
+#[cfg(feature="world_file")]
+use world_image_file::WorldFile;
 
 /// A single tile.
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Hash)]
@@ -269,6 +276,25 @@ impl Tile {
 
     pub fn modtile_metatile(&self) -> Option<ModTileMetatile> {
         ModTileMetatile::new(self.zoom(), self.x(), self.y())
+    }
+
+    #[cfg(feature="world_file")]
+    /// Return the World File (in EPSG:3857 / Web Mercator SRID) for this tile
+    pub fn world_file(&self) -> WorldFile {
+        let total_merc_width = 20037508.342789244;
+        let tile_merc_width = (2. * total_merc_width) / 2f64.powi(self.zoom as i32);
+        let scale = tile_merc_width / 256.;
+
+        WorldFile {
+            x_scale: scale,
+            y_scale: -scale,
+
+            x_skew: 0.,
+            y_skew: 0.,
+
+            x_coord: tile_merc_width * (self.x as f64) - total_merc_width,
+            y_coord: -tile_merc_width * (self.y as f64) + total_merc_width,
+        }
     }
 
 }
@@ -1900,6 +1926,14 @@ mod test {
         assert_eq!("0 0/0/0".parse::<Metatile>().ok(), None);
         assert_eq!("8 0/10/10".parse::<Metatile>().ok(), None);
         assert_eq!("8 4/1/1".parse().ok(), Metatile::new(8, 4, 0, 0));
+    }
+
+    #[cfg(feature="world_file")]
+    #[test]
+    fn world_file() {
+        let t = Tile::new(6, 33, 21).unwrap();
+        let wf = t.world_file();
+        assert_eq!(format!("{}", wf), "2445.98490512564\n0\n0\n-2445.98490512564\n626172.1357121654\n6887893.4928338025\n");
     }
 
 }
