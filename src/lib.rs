@@ -172,17 +172,17 @@ impl Tile {
 
     /// Returns the LatLon of the top left, i.e. north west corner, of this tile.
     pub fn nw_corner(&self) -> LatLon {
-        tile_nw_lat_lon(self.zoom, (self.x as f32), (self.y as f32))
+        tile_nw_lat_lon(self.zoom, self.x as f32, self.y as f32)
     }
 
     /// Returns the LatLon of the top right, i.e. north east corner, of this tile.
     pub fn ne_corner(&self) -> LatLon {
-        tile_nw_lat_lon(self.zoom, (self.x as f32)+1.0, (self.y as f32))
+        tile_nw_lat_lon(self.zoom, (self.x as f32)+1.0, self.y as f32)
     }
 
     /// Returns the LatLon of the bottom left, i.e. south west corner, of this tile.
     pub fn sw_corner(&self) -> LatLon {
-        tile_nw_lat_lon(self.zoom, (self.x as f32), (self.y as f32)+1.0)
+        tile_nw_lat_lon(self.zoom, self.x as f32, (self.y as f32)+1.0)
     }
 
     /// Returns the LatLon of the bottom right, i.e. south east corner, of this tile.
@@ -507,17 +507,17 @@ impl Metatile {
 
     /// Returns the LatLon of the top left, i.e. north west corner, of this metatile.
     pub fn nw_corner(&self) -> LatLon {
-        tile_nw_lat_lon(self.zoom, (self.x as f32), (self.y as f32))
+        tile_nw_lat_lon(self.zoom, self.x as f32, self.y as f32)
     }
 
     /// Returns the LatLon of the top right, i.e. north east corner, of this metatile.
     pub fn ne_corner(&self) -> LatLon {
-        tile_nw_lat_lon(self.zoom, (self.x+self.size() as u32) as f32, (self.y as f32))
+        tile_nw_lat_lon(self.zoom, (self.x+self.size() as u32) as f32, self.y as f32)
     }
 
     /// Returns the LatLon of the bottom left, i.e. south west corner, of this metatile.
     pub fn sw_corner(&self) -> LatLon {
-        tile_nw_lat_lon(self.zoom, (self.x as f32), (self.y+self.size() as u32) as f32)
+        tile_nw_lat_lon(self.zoom, self.x as f32, (self.y+self.size() as u32) as f32)
     }
 
     /// Returns the LatLon of the bottom right, i.e. south east corner, of this metatile.
@@ -811,7 +811,8 @@ fn tile_nw_lat_lon(zoom: u8, x: f32, y: f32) -> LatLon {
     LatLon::new(lat_deg, lon_deg).unwrap()
 }
 
-fn lat_lon_to_tile(lat: f32, lon: f32, zoom: u8) -> (u32, u32) {
+/// Return the x,y of a tile which has this lat/lon for this zoom level
+pub fn lat_lon_to_tile(lat: f32, lon: f32, zoom: u8) -> (u32, u32) {
     // TODO do this at compile time?
     #[allow(non_snake_case)]
     let MAX_LAT: f64 = std::f64::consts::PI.sinh().atan();
