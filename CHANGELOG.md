@@ -1,3 +1,15 @@
+## Unreleased
+
+### Breaking Changes
+
+* `BBox::new_from_string` has been replaced with a `FromStr` implemention
+
+### New Features
+
+* `merc_location_to_tile_coords` in which tile is a 3857/web mercator point
+* `world_file` optional feature, and `Tile::world_file()` to generate a [world
+  file](https://en.wikipedia.org/wiki/World_file) to georeference this tile.
+
 <a name="v0.14.0"></a>
 ## v0.14.0 (2018-02-28)
 
