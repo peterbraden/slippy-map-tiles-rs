@@ -832,6 +832,28 @@ pub fn lat_lon_to_tile(lat: f32, lon: f32, zoom: u8) -> (u32, u32) {
     (xtile, ytile)
 }
 
+/// Return the x,y of a tile which (for this zoom) has this web mercator 3857 x/y, and then the x,y
+/// of the pixel within that image (presuming a 256x256 image)
+pub fn merc_location_to_tile_coords(x: f64, y: f64, zoom: u8) -> ((u32, u32), (u32, u32)) {
+    let num_tiles = 2u32.pow(zoom as u32) as f64;
+    let global_extent = 20_037_508.342789244;
+    let tile_width = (2.*global_extent) / num_tiles;
+
+    (
+        // location within the tile
+        (
+            ((x+global_extent)/tile_width) as u32,
+            ((y+global_extent)/tile_width) as u32,
+        ),
+    
+        // Tile x/y
+        (
+            (((x+global_extent)%tile_width)/tile_width*256.) as u32,
+            (num_tiles - ((y+global_extent)%tile_width)/tile_width*256. - 1.) as u32,
+        )
+    )
+}
+
 /// How many tiles does this bbox cover at this zoom
 /// If there is an overflow for usize, `None` is returned, if not, a `Some(...)`
 pub fn size_bbox_zoom(bbox: &BBox, zoom: u8) -> Option<usize> {
