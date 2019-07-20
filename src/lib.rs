@@ -274,7 +274,7 @@ impl Tile {
 }
 
 impl FromStr for Tile {
-    type Err = ();
+    type Err = &'static str;
     
     fn from_str(s: &str) -> Result<Self, Self::Err> {
 
@@ -285,7 +285,7 @@ impl FromStr for Tile {
         let caps = TILE_RE.captures(s);
 
         if caps.is_none() {
-            return Err(());
+            return Err("Tile Z/X/Y regex didn't match");
         }
         let caps = caps.unwrap();
 
@@ -297,7 +297,7 @@ impl FromStr for Tile {
         match Tile::new(zoom, x, y) {
             None => {
                 // Invalid x or y for the zoom
-                Err(())
+                Err("Invalid X or Y for this zoom")
             },
             Some(t) => {
                 Ok(t)
