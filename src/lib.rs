@@ -744,7 +744,7 @@ impl MetatilesIterator {
             file.read_line(&mut s).unwrap();
         }
         // remove trailing newline
-        let s = s.trim_right();
+        let s = s.trim_end();
 
         s.parse().ok()
     }
