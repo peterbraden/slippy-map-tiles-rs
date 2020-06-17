@@ -858,8 +858,8 @@ pub fn lat_lon_to_tile(lat: f32, lon: f32, zoom: u8) -> (u32, u32) {
     (xtile, ytile)
 }
 
-/// Return the x,y of a tile which (for this zoom) has this web mercator 3857 x/y, and then the x,y
-/// of the pixel within that image (presuming a 256x256 image)
+/// Return the the x,y of the pixel within a tile (presuming a 256x256 image) and then the 
+/// x,y of a tile which (for this zoom) has this web mercator 3857 x/y 
 pub fn merc_location_to_tile_coords(x: f64, y: f64, zoom: u8) -> ((u32, u32), (u32, u32)) {
     let num_tiles = 2u32.pow(zoom as u32) as f64;
     let global_extent = 20_037_508.342789244;
